@@ -1,0 +1,991 @@
+site_id,device_id,station_no,site_uuid,device_uuid,input_title,api_label,units,probe_count,is_rain_increment
+4409,3,16300,0eed6f54-6c4e-4efb-ada9-8ed96d0c9a0c,ccb4c87b-a27d-4520-93db-1ea5c399cec7,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>108th @ East Branch of 2nd Creek <small>(16300)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4410,3,16301,fa157ab4-34e9-4e83-85ec-865cbd554b45,c594a6ea-923c-4c3c-8ae7-6155b8ec8684,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>108th @ West Branch of 2nd Creek <small>(16301)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4403,3,16302,19d4b0f5-e19c-4993-b983-3454601181b2,eaa947a7-be4e-4de0-b95c-8872d66e5d77,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>96th &amp; Brighton @ East Fork Shoal Creek <small>(16302)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4401,4,16303,8e3448c8-442b-4232-88c0-6bd07f6b0beb,48c198b9-6e2d-42f0-9659-4be134b17777,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Barry Rd @ East Fork Shoal Creek <small>(16303)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4430,2,16304,c3f7c4e3-e042-4a30-841c-6c2ae18fdd0d,87df0cea-696d-422a-a340-ddfba5352a2e,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Barry Rd. @ Line Creek <small>(16304)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4439,2,16305,1062f1e1-f751-4635-9cb6-5740393dbaf3,b6547cd8-5293-4a66-a211-059415882ae7,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Birmingham Pump Station <small>(16305)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+48,5,16048,6ad62053-ca48-4b50-b2d8-809f921c8164,777bd950-5c78-47df-99d8-7b15f105ae6f,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BL01-U.S. 69 @ Blue River <small>(16048)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+2,3,16035,8f4c9f90-a67a-49be-a86a-c4fe4aed436e,3f2855e4-c9a0-46a8-8e42-b98e782bd462,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BL02-191st St &amp; Mission Rd <small>(16035)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+9,6,16040,3fe96411-b359-4598-bd33-3a67af8d3242,67363639-8418-4df4-8ee6-934b8a84a052,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BL03-Mission Rd @ E. Camp Branch <small>(16040)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+10,12,16049,fad65865-34ea-41f4-b552-69a9939e7dd9,0bd88e7a-711c-43aa-aeb7-890e79166e70,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BL04-Kenneth Rd @ Blue River <small>(16049)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+4425,2,16306,cd21b231-53c1-4549-a2ae-d3701a5fe2f1,496ed60a-1f97-4c29-923a-52f7240c91c3,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BL05-Prospect &amp; Hwy 150 <small>(16306)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4362,4,16307,ef76ff7a-1e12-4334-817e-53eb2fa2c6b6,623d8b14-9e3d-4fef-830e-2182c36e2a04,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BL06-Red Bridge @ Blue River <small>(16307)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4419,2,16308,8c74d5df-15ed-43bf-b090-3992df8f04f1,544f2865-3e97-4913-8e92-4b0e313fbf33,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BL07-Hickman Mills Dr &amp; I-470 <small>(16308)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4420,2,16309,392eec63-66ed-4c4b-a432-496679756194,b0fec739-8be4-4646-adb0-7607851a9704,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BL08-Bannister &amp; Hwy 71 <small>(16309)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4369,9,16310,fd1765db-8649-4d8b-abfb-f1c99a23c094,73671a64-2fc3-462b-aab0-a222d3772f4e,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BL09-85th @ Blue River <small>(16310)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4389,3,,41c38ea0-ef9e-4a2d-8e97-d5844ce72907,dce41c62-5885-44ca-a0cb-f7382386d289,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i> <small>()</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i> <small>()</small></span>
+<!-- /.text-nowrap -->",,0,False
+4364,4,16312,8e7db8fe-c28e-4d3a-a098-2393b378b23f,676851f8-f718-49cd-92ee-504ebf50a97f,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BL11-63rd @ Blue River <small>(16312)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4371,4,16313,73a5da52-807f-4b57-9dba-3463b417408b,91e4d962-3a36-4007-97c8-2de5fd2acfc3,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BL12-Colorado Ave @ Blue River <small>(16313)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4386,3,16314,08b6bde1-cdd9-4b8c-b0d5-37ff8c8d2eee,fb18fc26-844d-4819-b800-b014143e7949,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BL13-Blue Ridge Cutoff @ Round Grove Creek <small>(16314)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4387,4,16315,5bb41ef3-8ab2-46c3-a061-903c01f6055a,a67d93e4-3f4a-4343-9a51-9c1a325f8d28,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BL14-Raytown Rd @ Trib 1 Round Grove Creek <small>(16315)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4388,3,16316,a39ae34d-fe94-48ba-88d5-863ae23dfc68,c4305a7d-17cc-4e7c-8496-c96283d5d797,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BL15-KC Animal Shelter @ Round Grove Creek <small>(16316)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4432,2,16317,e577dee3-66f4-4b2e-8f1c-9141be2e2d2c,217ccb73-07f4-40d2-9efb-a635ae3a90c5,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BL17-Winner Rd &amp; 12th St @ Gooseneck Creek <small>(16317)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4379,4,16318,88682a95-78c4-4575-a7ee-200d9ba30733,28b955c8-3a40-4422-b277-d7c831eaeb28,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BL18-17th @ Blue River <small>(16318)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4457,3,16118,04f6800c-fe08-44bb-9449-bd0e19f3e192,9c9b3d61-dd95-498b-93da-a950dfaa3539,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BL19- 175th St @ Camp Branch Control <small>(16118)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4460,3,16121,b834ad94-5262-4f33-97c0-83530ef98566,fe927a81-8c2e-4083-8400-ef46063bfc73,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BL20- 175th St @ E Camp Branch Control <small>(16121)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+92,9,16093,06b6c9de-1bb2-4b95-8238-c90011a982f0,b0fd5b41-1c06-4334-babb-64928807e64d,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BR01-Nall Ave @ Brush Creek <small>(16093)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+4381,4,16319,1890d287-225b-415f-83d4-0f80a47d122e,7f515e4d-a50a-4cd1-a3b5-ce717db4251e,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BR02-Porter Park <small>(16319)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+94,4,16094,c69b7b9d-477a-47f7-9c41-2837662e4cec,929dab02-924a-4116-8aae-f442d0a08dce,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BR03-74th St @ Brush Creek <small>(16094)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+24,6,16106,239d5f75-1ec9-4c83-8cf5-0d15a783304c,296fca99-83fd-4d9d-8b3e-aa5c25dcd7b2,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BR04-66th St &amp; Mission Rd Master <small>(16106)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4383,4,16320,f5076e1f-b0d4-403b-b935-f69c1a305099,23d87798-9a1c-49c6-b38d-ba19fad41c7a,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BR06-Martway @ Rock Creek <small>(16320)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+132,2,16005,3462ea93-7321-4585-89fa-d581d30a2a21,aa26ec7f-6d95-4331-83d4-77c9ea6f1f64,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BR07-Mission Rd @ Rock Creek <small>(16005)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+43,6,16099,70c72a6c-6890-4a65-be1e-9d6d6fc26a36,235ea14e-f3b8-40bd-805e-f36b553e4201,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BR08-Mission Hills Master <small>(16099)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+39,5,16112,793c3698-6d60-4df8-85f0-89ddb8ad5fe5,36d3fa72-3c50-4af0-89ec-37b044a97861,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BR09-Belinder Ave @ Brush Creek Master <small>(16112)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4376,4,16321,0863220b-1e06-47fd-b717-ffe29722c477,d15cda29-2594-4f5b-b0c0-5b06fd8bd1c1,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BR10-Ward Parkway <small>(16321)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4375,4,16322,5da5d219-c528-4707-8004-cece384d945b,d9e584e5-e93c-40fa-8690-84437a99e374,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BR11-Main/Brookside <small>(16322)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4434,2,16323,1a89fc3a-6de2-4b4b-9ed1-c71c655e798f,8eead5a8-7041-4b05-9ec8-b91389227509,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BR12-Oak &amp; Rockhill <small>(16323)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4370,3,16324,560c4428-25db-4aa6-b2e2-edc5c33b5cea,82d6fc5e-8cf5-49f9-a692-e00542f24a0a,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BR13-Brooklyn PS <small>(16324)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4377,3,16325,dfdd5ec4-5de5-4f6c-abed-53e7974e5ea0,276e741f-acd0-4ab3-8186-4786a01525ae,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BR14-Linwood <small>(16325)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4374,3,16326,941f8986-b009-4d4c-82ca-b869492b08c6,9f140da0-c514-4b3e-a44d-36241b1a9e78,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BR15-Paseo HS <small>(16326)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4372,4,16327,eed603d1-afbf-42ae-84de-fb46705d588e,348ecac8-f784-439c-a24a-a2e89fd4787e,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BR16-Elmwood <small>(16327)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+275,3,16087,d6e49f04-5672-442b-a437-448c92a7a4df,b9b2feb1-0295-42b3-b6b1-cc9b1e16b4f3,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BU01-199th St @ Martin Creek <small>(16087)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+8,3,16084,884c5bad-94d9-4134-83d6-91a97ab9e348,c25819f4-d035-45a7-ad54-c52677148f75,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BU02-191st St &amp; Dillie Rd <small>(16084)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+8,5,16084,884c5bad-94d9-4134-83d6-91a97ab9e348,d01828b0-2412-4a5f-ab8b-5a6180182f35,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BU02-191st St &amp; Dillie Rd <small>(16084)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i> <small>()</small></span>
+<!-- /.text-nowrap -->",,0,False
+77,3,16085,9d9f4481-eb7b-44bf-b7d4-af97f989de4e,c9452117-9b0c-43c7-84d6-d831f54d458f,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BU03-New Century Airport <small>(16085)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+276,2,16088,a23529bb-f19f-439b-82df-c455da116ab0,033b2822-502b-4348-a0e2-4cb1d5b398f2,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>BU04-199th St &amp; Clare Rd <small>(16088)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+79,10,16086,ec7a3bf8-7b31-46aa-bcd0-5f9fb671461e,7e8de922-b126-4f5d-8ff3-7e8b716c15cf,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>CD01-JoCo Transit Building <small>(16086)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+82,4,16068,b8607998-b3bf-4e1e-8132-91fcfa3eea81,aee99c7e-87bb-400b-8d28-fd73f754a4c0,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>CD02-Olathe Lake Discharge <small>(16068)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+83,4,16073,3a6c8235-0343-407b-85fb-654e6ccae439,42a3574f-a683-4301-a6e7-43624875966c,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>CD03-127th St @ Cedar Creek <small>(16073)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+85,4,16071,1e8f2d00-6bca-4bc6-904d-2a609099f6d7,fa902e90-3d44-4736-b3b2-d51024fe1911,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>CD04-119th St @ Little Cedar Creek <small>(16071)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+86,4,16069,e87cedc6-2515-4b81-8154-2c967e476c92,88780e9d-9cdc-4ac0-8f5d-98fc8334daea,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>CD05-119th St @ Cedar Creek <small>(16069)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+117,4,16070,dfbb17cc-21d2-45dd-97bb-54235b783df6,431c984d-692c-45f9-a501-0bef6d1b6a32,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>CD06-K-10 @ Cedar Creek <small>(16070)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+118,4,16072,75968fd7-b885-42f9-a15e-f359164aaa05,5e40e965-5a6f-4df8-b431-9b7fb88f0f26,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>CD07-95th St @ Camp Creek <small>(16072)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+121,3,16074,c2d3cba4-ba9f-4782-87f1-7c55f30a614a,b3debe25-cfa0-4d28-8747-bf9e4f1acded,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>CD08-Desoto Streamway Park <small>(16074)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+56,4,16037,58b49c20-8c93-4c3b-b762-e9a1bfbdc731,95474dbf-9bd5-4593-b7e5-d54d2991ed0c,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>CF01-Pflumm Rd @ Coffee Creek <small>(16037)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+269,3,16038,6dca6364-0807-4086-a5a2-57e210328369,32be66af-d248-46a4-b7f2-aaf2ca7b64a1,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>CF02-Quivira Rd @ Coffee Creek <small>(16038)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+50,4,16039,111e6a56-5618-48e5-ab0a-6200efbf744e,e342bc38-1453-4087-8e37-64c4038fe4e2,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>CF03-Switzer Rd @ Coffee Creek <small>(16039)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+4411,3,16328,72fc79e8-d482-4e22-901c-54d2fe5326f4,47893ced-5f3f-4bcc-b928-da8284f636ac,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Cookingham @ 2nd Creek <small>(16328)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4414,2,16329,962b52f6-db5b-4bf9-a5ee-960f72c4a6f0,a1b07244-4d14-464a-9ab8-6c45fa6ffb96,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Eastern Ave @ Fishing River <small>(16329)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4393,4,16330,01fde59c-7af4-4e91-bef2-e7f2b071d7ef,ec96ac23-1a42-4718-8e9d-4881ae0f3fe1,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Englewood Dr @ Mill Creek <small>(16330)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4436,2,7020,cea6d4a3-da23-48aa-91ce-87fdf9c70474,e7f0013a-8608-423c-9ec0-2664f8d66ee1,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Flood Pump Station 14 <small>(7020)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(7020)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4408,3,16331,2dd028e9-00fc-4c8f-b5f3-324055d6f3b2,b16f4495-5e4b-4852-b69c-536c68009ab0,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Hwy 152 @ Upper Shoal Creek <small>(16331)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4395,3,16332,eaa19a4a-2685-4e30-b483-7098fc843e70,b563833e-c24f-481b-834c-c0b6f6010be1,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>I-29 @ Line Creek <small>(16332)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+59,5,16018,101ce0fd-dc55-48d1-b132-cdb5502ed551,0e3de0fc-9077-4d83-832b-f165d60c7849,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>IN01-151st St &amp; Ridgeview Rd <small>(16018)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+60,4,16007,ebb8e8c0-4852-494c-b6fd-118ab6502ef4,ffaa1c5d-0027-4d96-9e7f-62cb807130f4,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>IN02-Sheridan St @ Indian Creek <small>(16007)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+274,5,16014,6ee54332-1aee-4eaf-9250-63e51b99fb6e,f651c5fb-37d4-4d0c-abcf-2e3556a7c8d6,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>IN03-Blackbob Rd @ Indian Creek <small>(16014)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+70,10,16028,a29716a2-6e79-4616-bca5-2c3fe4408f46,b5fe1d67-2577-47f1-9576-f9c389e75394,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>IN04-J.C.C.C. <small>(16028)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+72,4,16017,726c7eff-6dd7-420a-b494-eb15255be8b4,f0350bd8-6bbd-45f8-89fa-3a30fbf98d8b,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>IN05-I-435 @ Quivira <small>(16017)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+71,6,16016,8b0b7051-1943-4d32-8878-15a77aecb701,e439cb51-e30b-410c-9699-71c920884c56,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>IN06-108th Terrace &amp; Nieman Rd <small>(16016)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+69,6,16015,a1340b8a-fb73-451a-bcf8-c6309e20feed,444668ff-aadb-4bec-a04d-5f0df8d31e23,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>IN07-Corporate Woods <small>(16015)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+1582,5,16098,1ec17411-0592-4439-8ca3-262cc9424a17,803f1b1b-096a-46ec-bdca-c36e9681bf21,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>IN08-Antioch Rd @ Indian Creek <small>(16098)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+66,7,16013,1b76f428-a353-4970-85f3-c115a3851c84,1fef98f5-2abd-4ce8-a820-ab02474e55ec,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>IN09-Marty St @ Indian Creek <small>(16013)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+263,4,16011,67645365-7845-4119-911a-aebac7ef8d78,433734ae-5f92-4fdc-9454-421d015cdb84,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>IN10-Lamar Ave @ Indian Creek <small>(16011)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+89,5,16006,7a42c438-875a-4a93-ab8a-44d78312a2c8,c823036b-e385-4f6c-a9ec-f9849520776a,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>IN11-O.P. City Hall <small>(16006)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+270,3,16096,82e656f1-0151-4b6f-9c1d-8a2cc172eb91,164c05ae-ddec-4ae1-88b4-28c6de483c5b,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>IN12-87th St &amp; Lamar Ave. <small>(16096)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+65,9,16029,3ab3528f-b3d2-43d0-9a91-9066976aad18,285807e9-6fc0-45f2-89cc-05f028fbd074,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>IN13-I-435 &amp; Nall <small>(16029)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+271,2,16010,3deb810f-8147-4fa1-acb8-991dd3e5cfcf,94b7f982-286b-478c-9df3-4d0aad7f6068,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>IN14-99th St &amp; Roe Ave <small>(16010)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+15,4,16008,49dd4d7f-2dab-42de-97c7-baf5b2debf1e,16980eeb-e68c-4dd4-951c-4fae4feff7d9,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>IN15-Mission Rd @ Indian Creek <small>(16008)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+22,4,16095,7929a6b8-d0ef-48aa-a197-bd7ca035bd09,1ff7a355-cecb-4577-9b19-a1c21a4d1547,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>IN16-Lee Blvd. @ Dykes Branch <small>(16095)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+4424,2,16333,1c645d2b-4911-4277-ade2-883851343578,1a09aea5-519e-4b78-8e25-b30daa249afb,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>IN17-92nd @ Dykes Branch <small>(16333)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4363,4,16334,92562a77-db04-4b79-85d4-6d26a5a9485f,8ce1053b-c290-450a-a6b8-c645551a98ff,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>IN18-103rd St. @ Indian Creek <small>(16334)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+1595,5,16105,8dcd81d6-cc77-4f1c-b034-8da2481b1412,f7f2a5a3-9b37-4bff-9a20-4a8cad2c6337,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>IN19-Switzer Rd @ Indian Creek <small>(16105)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+123,8,16083,9b0008e5-163b-43cd-b4e3-2da9e9104dfc,4b22779a-cffa-4e6c-a0eb-f7a1ca3b77c4,Just a moment...,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>KL01-159th St &amp; Edgerton Rd <small>(16083)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+124,4,16080,a32d451f-1958-4fdd-9796-3ccf462f9c31,2e46c8fb-9933-4e57-b113-a2d5d02d071e,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>KL02-151st St @ Spoon Creek <small>(16080)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+80,4,16076,1c1b244a-1d7d-4999-86eb-5e1c8c27160d,314199c0-abd9-4ddb-8ad3-55e2c5ba4428,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>KL03-Gardner Lake Discharge <small>(16076)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+81,4,16077,2baeefd3-ed48-47f2-8077-32527d5ad361,8a46eeb1-0ae6-4563-8d11-5c6c1aee8f94,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>KL04-143rd @ Kill Creek <small>(16077)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+125,3,16082,a1adf59c-3283-43c8-a4eb-aa67b6cca769,92c85ef4-1ff4-49d8-8055-792b1f002a7a,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>KL05-127th St &amp; Evening Star Rd <small>(16082)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+87,4,16078,a62125f9-24a9-4821-bb3f-450963c9e5d2,f507fef1-1712-44f7-89a0-87a6ca8f9097,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>KL06-127th St @ Kill Creek <small>(16078)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+120,3,16081,dc297244-14ec-4fbd-b3dc-a34df2444781,c67eb6d4-f743-48b7-a2e7-1542dbe7393c,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>KL07-102nd St &amp; Lexington Ave <small>(16081)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+119,4,16079,876523f1-1541-4a58-b0a7-8e827fc421ea,73bf1d93-f60a-4df4-86db-0618639b23a1,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>KL08-95th St @ Kill Creek <small>(16079)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+4422,2,16335,1408895f-881d-4212-8a0e-f1f3c4e705fc,43aa8b3d-f7ca-414d-8a68-49c13ab4192f,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>LB01-E 83rd @ White Oak Creek <small>(16335)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4421,2,16336,de95baa0-77f6-4475-9937-f34c04f816a3,07e7d5e2-40cb-4f56-89ce-f68e6cb1dedb,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>LB02-Elm Rd @ White Oak Creek <small>(16336)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4427,2,16337,edddec72-f106-4256-88a0-78b4e74d39ef,c9893dcd-d896-42f1-82cc-1aecb2d3b536,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>LB03-Woodson Rd @ Wildwood Creek <small>(16337)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4423,2,16338,b09ccfe2-20f0-434e-8f3a-19eb5ad8533c,138f9560-f716-4cfc-b2cb-75f398e5c84f,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>LB04-Military Club Rd @ White Oak Creek <small>(16338)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4426,2,16339,28d75557-155d-4e60-960b-890603dc12e4,b9d2a106-f401-4660-917b-3fc68190a264,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>LB05-Blue Pkwy &amp; Little Blue River Knobtown <small>(16339)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4433,2,16340,b5bc9920-377d-4dda-a92f-23a02f892e8e,4a6374e0-9401-4e92-9345-d8aa3c2286cb,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Lisbon @ Todd Creek <small>(16340)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4397,3,16341,a2b22d7f-054b-4116-9188-e07c8979bc91,caa37142-2bb6-4987-b892-f1d389165910,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Little Shoal @ Church Rd <small>(16341)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4391,3,16342,683d8dc5-f97c-4932-b095-847613036ce8,5c2b2620-aa04-4de1-ad10-8e0d784d3f3f,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Mill Creek @ N Palmer St <small>(16342)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+78,3,16067,f14e9f54-893b-40c5-bdb1-9dbff630485a,4d7ada98-84b1-413b-8b57-9d23cceb453d,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>ML01-Old Hwy 56 &amp; Harrison St <small>(16067)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+138,3,16055,596139fc-5c0d-49f7-b6d2-1c00c0baf7ee,2682a294-b13c-41b3-847d-a2c39bacb102,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>ML02-College Blvd @ Mill Creek <small>(16055)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+84,3,16066,ae8118fc-8e68-4f10-86ff-3964ea7c3063,49857af0-d00a-481f-9be0-805d7c2185be,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>ML03-K-10 and K-7 <small>(16066)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+101,4,16057,6a4bc77f-ddc5-4691-9038-82422e811f1a,b2189e9f-6941-4f19-98a1-5a25449aa33d,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>ML04-87th Lane @ Mill Creek <small>(16057)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+113,4,16061,e952ae64-dfda-4f99-bedb-8f5126dfcd2e,11262998-20fc-4f17-b577-686ca9386f53,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>ML05-Woodland Rd @ Coon Creek <small>(16061)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+114,3,16075,71dcedd4-d04d-4a21-8116-ec1f5b6b766e,559f87ad-48b7-467c-bdb0-f64c6cddee74,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>ML06-75th St &amp; K-7 <small>(16075)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+122,7,16065,d97ac60d-9817-49fd-b97e-52f61f6a2f6c,06768c19-2aea-4426-866b-4cab3f214fa1,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>ML07-Johnson Dr. and K-7 <small>(16065)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+103,3,16064,483f74c1-c841-47df-af59-d7f312f82380,d4c69f36-00ad-43e9-a499-ef3e06cb1c17,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>ML08-67th St and Caenen St <small>(16064)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+102,4,16062,2eb1e628-ce60-49fd-85ac-4a1188db81b0,45761053-e3ec-42c3-b0c8-f1daebf6e96a,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>ML09-79th St @ Little Mill Creek <small>(16062)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+104,4,16059,5964ba2a-8dc9-48d0-b670-35bfb9c85add,02b0903b-fdaa-48ec-9400-3518a3cc4852,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>ML10-Lackman Rd @ Little Mill Creek <small>(16059)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+105,6,16060,d2f1a4df-4746-4600-8514-d5456a3cc5d0,eb10982e-f40e-4e03-ae5d-831d3b60516c,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>ML11- Tomahawk Hills Golf Course @ Little Mill Creek <small>(16060)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+115,4,16058,e93e7f7e-2474-4c8d-9657-6d9974d1c483,edc16cff-0717-4d74-bca9-d8e326378838,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>ML12-Shawnee Mission Pkwy @ Mill Creek <small>(16058)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+116,4,16063,cc48e768-e9f3-401b-bae0-5645f9d38166,5f2bec33-faaf-4110-8f74-2581c00c1894,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>ML13-Woodland Rd @ Clear Creek <small>(16063)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+4400,3,16343,e5fa3bc5-e479-4b37-a1ce-ab4ee4e0db49,12510547-247d-4b94-86bc-e14668f257f9,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>N Brighton @ Upper Shoal Creek <small>(16343)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4415,2,16344,2be0b70d-9397-4f03-a14d-9558f11cabcc,cbaa7630-702c-446f-9ff9-e59aef57226e,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>N. Home Ave. @ Fishing River <small>(16344)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4413,2,16345,0d69e43e-2183-4fa7-ae93-73b8b1a1316d,8f0eb6a3-fa09-468e-87a2-efdba32d5c6a,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>NE 112th Ter @ Rocky Branch Creek <small>(16345)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4418,2,16346,6df653a9-e6b5-45b0-b989-f9d42e0f163a,5713e8a9-cb91-42ae-a787-f2888428d7cc,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>NE 42nd Ter. @ Buckey Creek <small>(16346)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4398,3,16347,5af1f7a3-b20b-4e98-a3d1-2aaf60f14d14,c7768c01-5707-4b26-982f-5af416e3a92c,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>NE 79th @ East Fork Little Shoal Creek <small>(16347)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4416,2,16348,763870d8-05cc-4a0c-8c15-d2cdc9a1a7cb,61f92a52-6b7d-4730-9de1-892dd380266a,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>NE 96th St. @ Little Shoal Creek <small>(16348)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4417,2,16349,e5ef9276-8a5b-4680-a181-e3b25677802a,50240150-d889-4767-84c1-b40f57128533,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>NE Vivion @ Rock Creek <small>(16349)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+54,9,16030,8e9a3a93-058c-4ae7-99a8-442008c9d306,044e97b7-54f8-46b6-869e-59d708bc9e11,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>NG01-151st St &amp; England St <small>(16030)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+53,4,16043,fe82a06a-d117-41f9-a2f7-4ea9c08f4376,fa12399f-092b-465a-bf50-26e39f716942,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>NG02-Metcalf Ave @ Negro Creek <small>(16043)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+51,4,16042,f89025a8-8242-4173-8b4f-9d3e543dafac,54a27402-4ff0-47ee-8505-8dd9a877540b,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>NG03-Nall Ave @ Negro Creek <small>(16042)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+11,4,16044,536b09f1-4e0a-433d-8eff-abda924a193f,8627dbea-4b49-47a5-9138-c55275715a81,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>NG04-Mission Rd @ Negro Creek <small>(16044)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+12,4,16045,937b149a-1bee-4e80-ace2-7acd36c1796b,3e51c20d-5951-471d-a32e-3db8e2d78ffc,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>NG05-Kenneth Rd @ Negro Creek <small>(16045)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+4405,3,16350,aa465f31-12e0-436c-bfc0-dbe48bcb7f0d,e8b2179f-13ee-448f-8f67-f8ccfac4070c,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>NW 68th @ East Fork Line Creek <small>(16350)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4406,3,16351,432da376-6002-4be4-ae29-56dcf5e29ca0,5b41095a-799b-4cbe-83ed-8fa27b8e175d,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>NW 68th @ Line Creek <small>(16351)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4431,2,16352,317e476e-de6f-42f8-ba6e-3a69c1e9ef77,83473ccd-c119-4e17-beaa-be89850ebc13,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>NW 80th @ Walnut Creek <small>(16352)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4402,3,16353,e5c52a6d-720f-4fbb-a8fa-8e9ea45da87d,8713af3a-fd69-4f7c-839f-b733a004d185,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>NW Barry Rd @ Upper Shoal Creek <small>(16353)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4394,3,16354,fb9f746f-0467-47c1-a962-252901bcecce,375eef4f-45f9-4882-a559-101d944da4c0,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>NW Vivion @ East Creek <small>(16354)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4399,3,16356,2430b035-602e-4bf2-8add-b45253624efe,c036422e-0ca9-41b0-8e8c-d7e314d234e6,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Pleasant Valley @ Upper Shoal Creek <small>(16356)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4407,7,16357,14b02bbf-81de-4f1e-9fa8-5afa7bf831d5,63f99f3d-c9f7-4787-a57b-b4f7491df16d,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Prairie View Weather <small>(16357)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+249,3,16819,0ea0eb9c-ed62-4edd-8cc9-ce157b55c0c6,3a1519cc-3658-46f9-be6d-f451baa79cb9,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Pump Station 2 <small>(16819)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+248,2,16823,a0363416-b1b7-43b9-9d78-80295e99ee8b,21b90b8a-2f9d-47a8-a589-69023ca1e1da,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Pump Station 29 <small>(16823)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+228,1,7030,e1752e94-9e69-4684-a03f-c762d75c0130,82063882-8fa2-474a-ad05-8dc363cdbaa9,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Pump Station 50 <small>(7030)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(7030)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+262,2,16825,28488372-f88d-4179-8cfd-a5340036f2c7,c77865f5-4192-4afd-9c9d-0b87168d0cee,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Pump Station 64 <small>(16825)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+255,2,16826,c41248b5-349f-4929-ad4c-553467c1c5b9,c01dbd1a-4ce1-49d4-99f7-9f91cbdf11b9,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Pump Station 74 <small>(16826)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+247,4,16822,99f1e4cb-7b41-4a79-8524-ae08d10af530,e984f281-a53d-4669-9438-3fd0761ac47f,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Pump Station 8 <small>(16822)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+226,2,16827,cf9bde32-a22d-4e2e-a9df-816abe181986,69b9da6f-6628-40d9-9145-2179ce4aa0b7,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Pump Station 80 <small>(16827)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4392,3,16358,e7385df0-c9c9-4c99-9009-d47af0bc76d8,2d83d3bd-d783-47e9-b65f-4ded8fbaa6bf,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Rock Creek @ Jackson Dr <small>(16358)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4438,2,16359,41767843-7e26-48df-a2c1-172691e32c73,b7679eb8-1b95-44e1-bdb3-43a99aeef216,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Shoal Creek Stop Log <small>(16359)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4412,3,16360,9bd51e7a-0f87-4bfa-8699-f6f5c3deacdf,1e1ed1e7-a868-4968-a2e3-3607ea305ff2,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Skyview @ 2nd Creek Trib <small>(16360)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4429,2,16361,da1a3d46-bdab-4b74-b539-8bdee6c0e839,c1351976-9975-49fe-a541-552500af9835,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>Summit @ First Creek <small>(16361)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+74,5,16025,f1da886e-d454-437c-b9e8-ccb856a28dc9,5fac8e36-d647-4dee-af9f-bd54376d01a0,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>TH01-135th St &amp; Pflumm Rd <small>(16025)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+57,3,16023,3404ce22-616e-4570-b319-41656e6aad84,cdd7ab6b-e686-4899-9cbe-25330543dc05,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>TH02-151st St &amp; Monrovia St <small>(16023)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+58,4,16024,85e403be-2cdb-4278-9245-70054936beaf,77ebd9a6-bee1-4593-8d1b-1c236a4a1bf0,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>TH03-Pflumm Rd @ Tomahawk Creek <small>(16024)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+73,4,16021,8dd4a912-1800-4b43-b5c1-997e0cf6695f,3ac6d878-af5e-4740-b0bb-17e413756dc6,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>TH04-Quivira Rd @ Tomahawk Creek <small>(16021)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+63,4,16022,426748f5-85d6-4a62-b9fd-eb475e517ca7,6cfc3ca2-504e-490f-8e12-5ccb86fdcfa5,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>TH05-Switzer Rd @ Tomahawk Creek <small>(16022)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+55,4,16026,bce696e8-3b9a-439e-8086-2d79d8ef0ddd,6bf80da9-7457-4b3a-a319-d7fe8ff339f1,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>TH06-143rd St &amp; Grant St <small>(16026)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+64,4,16027,b1407973-3f67-4d4e-9bc8-389c45f0580e,fe7a98ce-eddb-45f7-b6e9-349313a66cd1,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>TH07-Wilshire Woods <small>(16027)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+61,6,16020,cf5c2735-545a-4ccf-9ab2-ccfea5bc5723,38b38ffa-c970-433a-b0e5-e5a3a091aa04,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>TH08-Metcalf Ave @ Tomahawk Creek <small>(16020)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+62,12,16019,87d78738-825c-4d6f-b195-c1f6fe67d363,030e29c8-dbfb-4e2d-b58b-6d0ac8b0f5d2,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>TH09-Roe Ave @ Tomahawk Creek <small>(16019)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+99,4,16053,0dc8c549-e7ec-4c34-8025-d2a87a9155c1,4121f10a-fa75-49c6-a005-a2a5d62f4a18,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>TU02-69th St @ Turkey Creek <small>(16053)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+1579,4,16090,3a3a3cd7-4c83-4cd7-8655-5387e1bbbd53,77fc4557-eedb-4998-8a38-316e79a473fd,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>TU03-67th St @ Turkey Creek <small>(16090)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+111,4,16052,bd978dbb-c74b-4bb9-a5f5-626a128371ec,800ad62b-128b-405c-a230-d241c49b30aa,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>TU04-Johnson Dr @ Turkey Creek <small>(16052)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+112,4,16054,3d355c0c-2f2e-4f19-b485-781d3f828661,fe6f8b03-0fd5-48da-863e-ccbb5e344fac,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>TU06-Antioch Rd On-Ramp @ Turkey Creek <small>(16054)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+108,4,16050,b9742faf-ec3c-4ec9-af15-489ee569b55f,cd759705-ba1e-4946-b177-2083ca29a2f5,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>TU07-Metcalf Ave @ Turkey Creek <small>(16050)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+109,4,16051,b031e79e-f6dd-4909-a39f-ae6d69f96200,da954dac-5917-44f8-b758-512c9f189ea1,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>TU08-Lamar Ave @ Turkey Creek <small>(16051)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+4378,4,16362,a26f86fc-e5f1-406d-8384-8de043904e53,9c0a5998-7e5d-406e-adba-2a0786eaf0ba,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>TU09-SW Blvd @ Turkey Creek <small>(16362)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4428,2,16363,21b92499-577b-4cea-80e5-23cb6e7cb223,119db362-822c-4bba-bde1-306ca3856eb0,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>TU10-Roanoke &amp; 31st @ Turkey Creek <small>(16363)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,0,False
+4390,2,,80988a7c-5984-4aa1-b232-47b505db8d5e,e618819a-c390-4cd5-b17e-ab7f9bfd77d7,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i> <small>()</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i> <small>()</small></span>
+<!-- /.text-nowrap -->",,0,False
+76,3,16032,5b33743f-8e44-47a9-a920-93ea303873d3,e0c0c5b5-e4f4-46ac-9fcc-58daa25dfd50,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>WF01-Bonita <small>(16032)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+7,5,16033,f824ce9d-b62c-4242-a8ca-3e610a09cf5a,367794d1-3a8c-48a3-8206-30eed9a2eb91,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>WF02-199th St &amp; Ridgeview Rd <small>(16033)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+5,9,16031,0f7d9b8f-3330-4d71-b887-712e4b908c02,13a10e76-d86a-4d89-9d96-53fd8685e70e,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>WF03-199th St &amp; Padbury Ln <small>(16031)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+6,6,16046,12d4e5af-42ca-43bf-8872-0990551e9bf0,8f2dfe64-6e51-40a6-a3fc-8b4de3eef984,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>WF04-Lackman Rd @ Wolf Creek <small>(16046)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+4,4,16036,664da8cd-8b11-4656-978a-8588cd44ba02,8726a5cb-38ce-4fc0-b60d-bb308771fb48,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>WF05-191st St @ E. Wolf Creek <small>(16036)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+49,6,16047,2c305037-331d-4040-9b9b-eac751b18625,45159cd4-ead3-491a-a6e7-05cf3c7af7ca,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>WF06-179th St @ Wolf Creek <small>(16047)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
+3,5,16034,a990afc3-56cf-45d3-a08d-aa720d380e70,bc8994a6-4917-4792-b1b2-78c06ed26302,,"<span class=""text-nowrap""><i class=""fa-regular fa-flag-swallowtail""></i>WF07-199th St &amp; Newton Dr <small>(16034)</small></span>
+<!-- /.text-nowrap -->
+
+
+<span class=""text-nowrap""><i class=""fa-regular fa-resistor""></i>Rain Increment <small>(0)</small></span>
+<!-- /.text-nowrap -->",in,1440,True
