@@ -57,7 +57,7 @@ def select_spread_gauges_for_target(
     ty: float,
     start_km: int = 5,
     end_km: int = 10,
-    want_n: int = 7,
+    want_n: int = 10,
     min_ang_sep_deg: float = 30.0,
 ) -> SelectionResult:
     """
@@ -194,7 +194,7 @@ def build_nearest7_for_grid(
     stn_y_col: str = "NAD83_15N_Lat",
     start_km: int = 5,
     end_km: int = 10,
-    want_n: int = 7,
+    want_n: int = 10,
     min_ang_sep_deg: float = 30.0,
 ) -> pd.DataFrame:
 
@@ -250,7 +250,7 @@ def main():
 
     ap.add_argument("--start-km", type=int, default=5)
     ap.add_argument("--end-km", type=int, default=10)
-    ap.add_argument("--want-n", type=int, default=7)
+    ap.add_argument("--want-n", type=int, default=10)
     ap.add_argument("--min-ang-sep-deg", type=float, default=30.0)
 
     args = ap.parse_args()

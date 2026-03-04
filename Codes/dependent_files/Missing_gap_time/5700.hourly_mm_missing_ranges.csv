@@ -1,0 +1,2 @@
+station,gap_start_local,gap_end_local,gap_start_utc,gap_end_utc,gap_days,nominal_step_seconds
+5700.hourly_mm,2017-09-25 09:00:00-0500,2017-12-09 21:00:00-0600,2017-09-25 14:00:00+0000,2017-12-10 03:00:00+0000,75.54166666666667,3600

@@ -6,10 +6,18 @@ from dash import Dash, dcc, html, Input, Output, State, callback_context, no_upd
 import geopandas as gpd
 from shapely.geometry import Polygon, MultiPolygon
 
+from pathlib import Path                 # ### NEW/CHANGED ###
+import re                               # ### NEW/CHANGED ###
+from functools import lru_cache          # ### NEW/CHANGED ###
+
 # ------------------- EDIT THESE PATHS -------------------
 GRID_CSV = "/mnt/12TB/Sujan/Spatial_correlation/Codes/01_Correlation_and_Variogram/grid_centers_full.csv"
 STATIONS_CSV = "/mnt/12TB/Sujan/Spatial_correlation/Codes/01_Correlation_and_Variogram/Stations_df.csv"
 NEAREST7_CSV = "/mnt/12TB/Sujan/Spatial_correlation/Codes/dependent_files/grid_nearest7.csv"
+
+# ### NEW/CHANGED ### Kriging event files
+EVENT_DIR = Path("/mnt/12TB/Sujan/Spatial_correlation/Codes/03_Interpolated_Rain")
+EVENT_GLOB = "Event_*_grid_rain_hourly_mm.csv"
 # --------------------------------------------------------
 
 # ------------------- COLUMN NAMES (EDIT IF NEEDED) -------------------
@@ -27,6 +35,7 @@ CATCHMENT_SHP_PATHS = [
     "/mnt/12TB/Sujan/Spatial_correlation/Codes/dependent_files/6892513/6892513.shp",
 ]
 # --------------------------------------------------------------------
+
 def load_catchments(shp_paths, target_epsg=26915, simplify_tol_m=20):
     gdfs = []
     for p in shp_paths:
@@ -35,7 +44,6 @@ def load_catchments(shp_paths, target_epsg=26915, simplify_tol_m=20):
             if g.empty:
                 continue
 
-            # Your shapefiles are EPSG:4326, reproject to UTM 15N meters
             g = g.to_crs(epsg=target_epsg)
 
             if simplify_tol_m is not None:
@@ -82,6 +90,7 @@ def polygon_to_traces(geom, line_width=1, fill_opacity=0.05):
             add_poly(poly)
 
     return traces
+
 
 def circle_xy(cx, cy, r_m, n=360):
     t = np.linspace(0, 2 * np.pi, n)
@@ -135,8 +144,9 @@ GRID_DF, STN_DF, N7_MAP = load_data()
 CATCH_GDF = load_catchments(
     CATCHMENT_SHP_PATHS,
     target_epsg=26915,
-    simplify_tol_m=20,   # optional: simplify by 20 m (speeds plotting). Use None to disable.
+    simplify_tol_m=20,
 )
+
 GRID_IDS = sorted(GRID_DF[GRID_ID_COL].unique().tolist())
 
 # Precompute arrays for speed
@@ -160,6 +170,88 @@ FULL_XRANGE = [float(xmin - padx), float(xmax + padx)]
 FULL_YRANGE = [float(ymin - pady), float(ymax + pady)]
 
 
+# ------------------- NEW/CHANGED: Event discovery + loader -------------------
+
+def discover_events():
+    """
+    Returns sorted list of available event numbers discovered from filenames.
+    """
+    events = []
+    pat = re.compile(r"Event_(\d+)_grid_rain_hourly_mm\.csv$")
+    for p in sorted(EVENT_DIR.glob(EVENT_GLOB)):
+        m = pat.search(p.name)
+        if m:
+            events.append(int(m.group(1)))
+    return sorted(set(events))
+
+AVAILABLE_EVENTS = discover_events()
+if not AVAILABLE_EVENTS:
+    print(f"[events] No event files found in {EVENT_DIR} matching {EVENT_GLOB}")
+
+@lru_cache(maxsize=6)
+def load_event_matrix(event_no: int):
+    f = EVENT_DIR / f"Event_{int(event_no)}_grid_rain_hourly_mm.csv"
+    if not f.exists():
+        raise FileNotFoundError(f"Event file not found: {f}")
+
+    df = pd.read_csv(f)
+
+    if "time_local" not in df.columns:
+        raise ValueError(f"{f} must contain a 'time_local' column.")
+
+    # Parse time_local
+    t = pd.to_datetime(df["time_local"], errors="coerce")
+    if t.isna().all():
+        raise ValueError(f"Could not parse time_local in {f}.")
+
+    # Build times index
+    times = pd.DatetimeIndex(t)
+
+    # Extract grid-id columns from header (they are strings in CSV)
+    col_ids = []
+    for c in df.columns:
+        if c == "time_local":
+            continue
+        try:
+            col_ids.append(int(c))
+        except Exception:
+            pass
+
+    col_lookup = {int(c): str(c) for c in col_ids}
+
+    ntime = len(df)
+    ngrid = len(GRID_ID_ARR)
+    rain_mat = np.full((ntime, ngrid), np.nan, dtype=float)
+
+    # Fill matrix aligned to GRID_ID_ARR
+    for j, gid in enumerate(GRID_ID_ARR):
+        c = col_lookup.get(int(gid), None)
+        if c is not None:
+            rain_mat[:, j] = pd.to_numeric(df[c], errors="coerce").to_numpy(float)
+
+    # Sort by time (keeps slider/animation consistent)
+    order = np.argsort(times.values)
+    times = times[order]
+    rain_mat = rain_mat[order, :]
+
+    # Fixed limits across all times (per event)
+    finite = rain_mat[np.isfinite(rain_mat)]
+    if finite.size == 0:
+        vmin, vmax = 0.0, 1.0
+    else:
+        # Option A (recommended for rainfall): clip negatives on the color scale
+        vmin, vmax = 0.0, float(np.nanmax(finite))
+        if vmax <= 0:
+            vmax = 1.0
+
+        # Option B (diagnostics): show negatives too
+        # vmin, vmax = float(np.nanmin(finite)), float(np.nanmax(finite))
+        # if vmin == vmax:
+        #     vmax = vmin + 1.0
+
+    return times, rain_mat, vmin, vmax
+
+
 def build_figure(
     grid_id: int,
     show_lines: bool,
@@ -170,9 +262,10 @@ def build_figure(
     centroid_opacity: float,
     gauge_size: int,
     gauge_opacity: float,
+    event_no: int | None,          # ### NEW/CHANGED ###
+    time_idx: int | None,          # ### NEW/CHANGED ###
 ):
     # selected grid coords
-    # fast lookup by boolean mask (533 rows is tiny)
     row = GRID_DF.loc[GRID_DF[GRID_ID_COL] == int(grid_id)].iloc[0]
     tx = float(row[GRID_X_COL])
     ty = float(row[GRID_Y_COL])
@@ -190,42 +283,83 @@ def build_figure(
     missing_ids = [i for i in selected_ids if i not in GID_SET]
 
     fig = go.Figure()
-        # Catchment polygons (background)
+
+    # Catchment polygons (background)
     if not CATCH_GDF.empty:
         for geom in CATCH_GDF.geometry:
             for tr in polygon_to_traces(geom, line_width=1, fill_opacity=0.10):
                 fig.add_trace(tr)
 
-    # 0) All centroids (clickable)
-    fig.add_trace(go.Scatter(
-        x=GRID_X, y=GRID_Y,
-        mode="markers",
-        name="CENTROIDS",
-        marker=dict(size=centroid_size, opacity=centroid_opacity, color="gray"),
-        customdata=GRID_ID_ARR,
-        hovertemplate="Grid ID: %{customdata}<br>E: %{x:.1f} m<br>N: %{y:.1f} m<extra></extra>",
-    ))
-    
-    # 0b) Centroid hitbox layer (invisible but clickable)
-    fig.add_trace(go.Scatter(
-        x=GRID_X, y=GRID_Y,
-        mode="markers",
-        name="Centroid hitbox",
-        marker=dict(size=max(centroid_size + 8, 14), opacity=0.0, color="rgba(0,0,0,0)"),
-        customdata=GRID_ID_ARR,
-        hoverinfo="skip",
-        showlegend=False,
-    ))
-    fig.add_trace(go.Scatter(
-        x=GRID_X, y=GRID_Y,
-        mode="markers",
-        marker=dict(size=max(centroid_size + 10, 16), opacity=0.0, color="rgba(0,0,0,0)"),
-        hoverinfo="skip",
-        showlegend=False,
-        name="Centroid hitbox",
-    ))
+    # ------------------- NEW/CHANGED: Rainfall colored centroids -------------------
+    rain_note = "No event selected."
+    if event_no is not None and event_no in AVAILABLE_EVENTS:
+        try:
+            times, rain_mat, vmin, vmax = load_event_matrix(int(event_no))
+            if time_idx is None:
+                time_idx = 0
+            time_idx = int(np.clip(time_idx, 0, len(times) - 1))
 
-    # 1) Selected centroid
+            z = rain_mat[time_idx, :]
+            ts_label = str(times[time_idx])
+
+            fig.add_trace(go.Scatter(
+                x=GRID_X, y=GRID_Y,
+                mode="markers",
+                name="Rain (centroids)",
+                marker=dict(
+                    size=centroid_size,
+                    opacity=centroid_opacity,
+                    color=z,
+                    colorscale=[
+                        [0.00, "rgb(255,255,255)"],   # white
+                        [0.20, "rgb(0,0,255)"],       # blue
+                        [0.40, "rgb(0,180,0)"],       # green
+                        [0.70, "rgb(255,255,0)"],     # yellow
+                        [1.00, "rgb(255,0,0)"],       # red
+                    ],
+                    cmin=vmin,
+                    cmax=vmax,
+                    colorbar=dict(title="Rain (mm)"),
+                ),
+                customdata=GRID_ID_ARR,
+                hovertemplate="Grid ID: %{customdata}<br>Rain: %{marker.color:.2f} mm<br>E: %{x:.1f} m<br>N: %{y:.1f} m<extra></extra>",
+            ))
+            rain_note = f"Event {event_no}, time: {ts_label} (index {time_idx}/{len(times)-1})"
+        except Exception as e:
+            # fallback: plain centroids if event load fails
+            fig.add_trace(go.Scatter(
+                x=GRID_X, y=GRID_Y,
+                mode="markers",
+                name="CENTROIDS",
+                marker=dict(size=centroid_size, opacity=centroid_opacity, color="gray"),
+                customdata=GRID_ID_ARR,
+                hovertemplate="Grid ID: %{customdata}<br>E: %{x:.1f} m<br>N: %{y:.1f} m<extra></extra>",
+            ))
+            rain_note = f"Event load failed: {e}"
+    else:
+        # No event chosen, show neutral centroids
+        fig.add_trace(go.Scatter(
+            x=GRID_X, y=GRID_Y,
+            mode="markers",
+            name="CENTROIDS",
+            marker=dict(size=centroid_size, opacity=centroid_opacity, color="gray"),
+            customdata=GRID_ID_ARR,
+            hovertemplate="Grid ID: %{customdata}<br>E: %{x:.1f} m<br>N: %{y:.1f} m<extra></extra>",
+        ))
+
+    # Centroid hitbox layer (invisible but clickable)
+    fig.add_trace(go.Scatter(
+        x=GRID_X, y=GRID_Y,
+        mode="markers",
+        name="Centroid hitbox",
+        marker=dict(size=max(centroid_size + 12, 18), opacity=0.0, color="rgba(0,0,0,0)"),
+        customdata=GRID_ID_ARR,
+        hoverinfo="skip",
+        showlegend=False,
+    ))
+    # ------------------------------------------------------------------------------
+
+    # Selected centroid
     fig.add_trace(go.Scatter(
         x=[tx], y=[ty],
         mode="markers",
@@ -234,7 +368,7 @@ def build_figure(
         hovertemplate=f"Selected Grid ID: {int(grid_id)}<br>E: {tx:.1f} m<br>N: {ty:.1f} m<extra></extra>",
     ))
 
-    # 2) All gauges
+    # All gauges
     fig.add_trace(go.Scatter(
         x=GX_ALL, y=GY_ALL,
         mode="markers",
@@ -244,7 +378,7 @@ def build_figure(
         hovertemplate="Gauge ID: %{text}<br>E: %{x:.1f} m<br>N: %{y:.1f} m<extra></extra>",
     ))
 
-    # 3) Highlight ≤10 km
+    # Highlight ≤10 km
     if highlight10:
         fig.add_trace(go.Scatter(
             x=GX_ALL[mask10], y=GY_ALL[mask10],
@@ -255,7 +389,7 @@ def build_figure(
             hovertemplate="Gauge ID: %{text}<extra></extra>",
         ))
 
-    # 4) Highlight ≤5 km
+    # Highlight ≤5 km
     if highlight5:
         fig.add_trace(go.Scatter(
             x=GX_ALL[mask5], y=GY_ALL[mask5],
@@ -266,7 +400,7 @@ def build_figure(
             hovertemplate="Gauge ID: %{text}<extra></extra>",
         ))
 
-    # 5) Selected 7
+    # Selected 7
     fig.add_trace(go.Scatter(
         x=GX_ALL[mask_sel7], y=GY_ALL[mask_sel7],
         mode="markers",
@@ -275,7 +409,6 @@ def build_figure(
         text=GID_ALL[mask_sel7].astype(str),
         hovertemplate="Selected Gauge ID: %{text}<extra></extra>",
     ))
-    
 
     # Lines to selected 7
     if show_lines and mask_sel7.any():
@@ -301,38 +434,25 @@ def build_figure(
         ))
 
     fig.update_layout(
-        title=f"Grid {int(grid_id)} | centroids={len(GRID_DF)} | gauges={len(STN_DF)}",
+        title=f"Grid {int(grid_id)} | {rain_note} | centroids={len(GRID_DF)} | gauges={len(STN_DF)}",
         xaxis_title="UTM Easting (m)",
         yaxis_title="UTM Northing (m)",
         height=820,
         margin=dict(l=40, r=20, t=70, b=40),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0.0),
-        uirevision="keep",  # keep zoom/pan
+        uirevision="keep",
         dragmode="pan",
     )
     fig.update_yaxes(scaleanchor="x", scaleratio=1)
     fig.update_xaxes(range=FULL_XRANGE)
     fig.update_yaxes(range=FULL_YRANGE)
 
-    # summary info for UI
     info = {
         "selected_ids_count": len(selected_ids),
         "missing_ids": missing_ids,
         "count10": int(mask10.sum()),
         "count5": int(mask5.sum()),
     }
-    # Add invisible centroid hitbox LAST (always clickable)
-    fig.add_trace(go.Scatter(
-        x=GRID_X,
-        y=GRID_Y,
-        mode="markers",
-        marker=dict(size=max(centroid_size + 12, 18),
-                    opacity=0.0,
-                    color="rgba(0,0,0,0)"),
-        hoverinfo="skip",
-        showlegend=False,
-        name="CENTROID_HITBOX",
-    ))
     return fig, info
 
 
@@ -340,15 +460,56 @@ app = Dash(__name__)
 app.title = "Grid centroids + gauges viewer (Dash)"
 
 default_grid_id = int(GRID_IDS[0])
+default_event = AVAILABLE_EVENTS[0] if AVAILABLE_EVENTS else None
 
 app.layout = html.Div(
     style={"display": "flex", "gap": "14px", "fontFamily": "system-ui, -apple-system, Segoe UI, Roboto, sans-serif"},
     children=[
         # Sidebar
         html.Div(
-            style={"width": "320px", "padding": "14px", "borderRight": "1px solid #ddd"},
+            style={"width": "360px", "padding": "14px", "borderRight": "1px solid #ddd"},
             children=[
                 html.H3("Controls", style={"marginTop": "0px"}),
+
+                # ### NEW/CHANGED: Event selector
+                html.Label("Event (kriging result)"),
+                dcc.Dropdown(
+                    id="event-dropdown",
+                    options=[{"label": f"E{e}", "value": int(e)} for e in AVAILABLE_EVENTS],
+                    value=default_event,
+                    searchable=True,
+                    clearable=True,
+                    placeholder="Select event",
+                ),
+
+                html.Div(style={"height": "10px"}),
+
+                # ### NEW/CHANGED: Time slider + play/pause
+                html.Label("Time (drag slider)"),
+                dcc.Slider(
+                    id="time-slider",
+                    min=0,
+                    max=0,
+                    step=1,
+                    value=0,
+                    tooltip={"placement": "bottom", "always_visible": False},
+                ),
+                html.Div(style={"height": "6px"}),
+                html.Div(id="time-label", style={"fontSize": "13px"}),
+
+                html.Div(style={"height": "8px"}),
+
+                html.Div(
+                    style={"display": "flex", "gap": "8px"},
+                    children=[
+                        html.Button("Play", id="play-btn", n_clicks=0),
+                        html.Button("Pause", id="pause-btn", n_clicks=0),
+                    ],
+                ),
+                dcc.Interval(id="anim-interval", interval=500, n_intervals=0, disabled=True),
+                dcc.Store(id="anim-playing", data=False),
+
+                html.Hr(),
 
                 html.Label("Grid ID (search/dropdown)"),
                 dcc.Dropdown(
@@ -397,7 +558,7 @@ app.layout = html.Div(
                 dcc.Slider(id="centroid-size", min=3, max=12, step=1, value=6),
 
                 html.Label("Centroid opacity"),
-                dcc.Slider(id="centroid-opacity", min=0.1, max=1.0, step=0.05, value=0.6),
+                dcc.Slider(id="centroid-opacity", min=0.1, max=1.0, step=0.05, value=0.8),
 
                 html.Div(style={"height": "10px"}),
 
@@ -414,6 +575,7 @@ app.layout = html.Div(
                 html.Div(style={"height": "10px"}),
 
                 html.Div(id="status-box", style={"fontSize": "13px", "whiteSpace": "pre-wrap"}),
+
                 dcc.Store(id="selected-grid-store", data=default_grid_id),
             ],
         ),
@@ -426,10 +588,7 @@ app.layout = html.Div(
                 dcc.Graph(
                     id="map",
                     figure=go.Figure(),
-                    config={
-                        "displayModeBar": True,
-                        "scrollZoom": True,     # mouse wheel zoom
-                    },
+                    config={"displayModeBar": True, "scrollZoom": True},
                 ),
             ],
         ),
@@ -446,33 +605,81 @@ app.layout = html.Div(
     prevent_initial_call=False,
 )
 def update_selected_grid(clickData, dropdown_value, current):
-
     if current is None:
         current = int(GRID_IDS[0])
 
     trig = callback_context.triggered[0]["prop_id"] if callback_context.triggered else None
 
-    # Dropdown changed
     if trig == "grid-dropdown.value":
         if dropdown_value is None:
             return current, current
         v = int(dropdown_value)
         return v, v
 
-    # Map clicked
     if trig == "map.clickData" and clickData:
         pt = clickData["points"][0]
-
-        # Always interpret hitbox click using pointIndex
         idx = pt.get("pointIndex", None)
         if idx is not None and 0 <= idx < len(GRID_ID_ARR):
             new_gid = int(GRID_ID_ARR[int(idx)])
             return new_gid, new_gid
-
         return current, current
 
-    # Default
     return current, current
+
+
+# ### NEW/CHANGED: when event changes, reset slider bounds and label
+@app.callback(
+    Output("anim-interval", "disabled"),
+    Output("anim-playing", "data"),
+    Input("play-btn", "n_clicks"),
+    Input("pause-btn", "n_clicks"),
+    State("anim-playing", "data"),
+)
+def toggle_animation(n_play, n_pause, playing):
+    trig = callback_context.triggered[0]["prop_id"] if callback_context.triggered else None
+    if trig == "play-btn.n_clicks":
+        return False, True
+    if trig == "pause-btn.n_clicks":
+        return True, False
+    return (not bool(playing)), bool(playing)
+
+# ### NEW/CHANGED: interval advances the time slider
+@app.callback(
+    Output("time-slider", "max"),
+    Output("time-slider", "value"),
+    Output("time-label", "children"),
+    Input("event-dropdown", "value"),
+    Input("anim-interval", "n_intervals"),
+    Input("time-slider", "value"),
+    State("anim-playing", "data"),
+    prevent_initial_call=False,
+)
+def sync_time_controls(event_no, n_intervals, slider_value, playing):
+    trig = callback_context.triggered[0]["prop_id"] if callback_context.triggered else None
+
+    if event_no is None:
+        return 0, 0, "No event selected."
+
+    try:
+        times, _, _, _ = load_event_matrix(int(event_no))
+    except Exception as e:
+        return 0, 0, f"Event load failed: {e}"
+
+    if len(times) == 0:
+        return 0, 0, f"Event {int(event_no)}: no timestamps."
+
+    max_idx = len(times) - 1
+    idx = int(slider_value or 0)
+    idx = int(np.clip(idx, 0, max_idx))
+
+    if trig == "event-dropdown.value":
+        idx = 0
+    elif trig == "anim-interval.n_intervals" and playing:
+        idx = 0 if idx >= max_idx else idx + 1
+
+    label = f"Event {int(event_no)}: {times[idx].strftime('%Y-%m-%d %H:%M')}"
+    return max_idx, idx, label
+
 
 @app.callback(
     Output("map", "figure"),
@@ -487,6 +694,8 @@ def update_selected_grid(clickData, dropdown_value, current):
     Input("gauge-size", "value"),
     Input("gauge-opacity", "value"),
     Input("reset-view", "n_clicks"),
+    Input("event-dropdown", "value"),     # ### NEW/CHANGED ###
+    Input("time-slider", "value"),        # ### NEW/CHANGED ###
 )
 def redraw(
     grid_id,
@@ -499,6 +708,8 @@ def redraw(
     gauge_size,
     gauge_opacity,
     reset_clicks,
+    event_no,
+    time_idx,
 ):
     show_lines = "on" in (show_lines_value or [])
     highlight10 = "on" in (highlight10_value or [])
@@ -515,9 +726,10 @@ def redraw(
         centroid_opacity=float(centroid_opacity),
         gauge_size=int(gauge_size),
         gauge_opacity=float(gauge_opacity),
+        event_no=(int(event_no) if event_no is not None else None),
+        time_idx=(int(time_idx) if time_idx is not None else None),
     )
 
-    # Reset view just forces full range again (it is already set, but keep this hook)
     if reset_clicks:
         fig.update_xaxes(range=FULL_XRANGE)
         fig.update_yaxes(range=FULL_YRANGE)
@@ -533,8 +745,13 @@ def redraw(
     else:
         status += "Selected-7 IDs all found in Stations_df.\n"
 
-    return fig, status
+    if event_no is None:
+        status += "Event: none\n"
+    else:
+        status += f"Event: {int(event_no)} | time index: {int(time_idx or 0)}\n"
 
+    return fig, status
+print(app.callback_map.keys())
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=8890, debug=True)

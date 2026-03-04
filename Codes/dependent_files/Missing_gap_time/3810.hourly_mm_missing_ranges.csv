@@ -1,0 +1,2 @@
+station,gap_start_local,gap_end_local,gap_start_utc,gap_end_utc,gap_days,nominal_step_seconds
+3810.hourly_mm,2018-12-03 18:00:00-0600,2019-01-08 18:00:00-0600,2018-12-04 00:00:00+0000,2019-01-09 00:00:00+0000,36.0,3600

@@ -1,0 +1,2 @@
+station,gap_start_local,gap_end_local,gap_start_utc,gap_end_utc,gap_days,nominal_step_seconds
+16070.hourly_mm,2020-12-26 20:00:00-0600,2021-01-29 15:00:00-0600,2020-12-27 02:00:00+0000,2021-01-29 21:00:00+0000,33.791666666666664,3600

@@ -1,0 +1,2 @@
+station,gap_start_local,gap_end_local,gap_start_utc,gap_end_utc,gap_days,nominal_step_seconds
+16005.hourly_mm,2021-03-15 04:00:00-0500,2021-04-16 17:00:00-0500,2021-03-15 09:00:00+0000,2021-04-16 22:00:00+0000,32.541666666666664,3600

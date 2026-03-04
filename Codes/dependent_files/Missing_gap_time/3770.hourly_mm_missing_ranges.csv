@@ -1,0 +1,2 @@
+station,gap_start_local,gap_end_local,gap_start_utc,gap_end_utc,gap_days,nominal_step_seconds
+3770.hourly_mm,2012-01-01 00:00:00-0600,2012-06-05 20:00:00-0500,2012-01-01 06:00:00+0000,2012-06-06 01:00:00+0000,156.79166666666666,3600
