@@ -1,5 +1,5 @@
-event,event_start_local,event_end_local,n_event_hours,n_grids,n_gauges_used,n_gauges_per_grid
-1,2013-05-30 12:00:00,2013-05-31 12:00:00,25,533,67,3
+event,event_start_local,event_end_local,n_event_hours,n_grids,n_gauges_used
+1,2013-05-30 12:00:00,2013-05-31 12:00:00,25,533,66
 
 station_id,file_exists,rows_read,n_duplicates_collapsed,n_bad_time_rows_dropped,n_missing_after_reindex,n_filled_as_zero
 16006,True,119224,13,0,14,14
@@ -61,7 +61,6 @@ station_id,file_exists,rows_read,n_duplicates_collapsed,n_bad_time_rows_dropped,
 16085,True,119220,13,0,15,15
 16086,True,119229,13,0,16,16
 16093,True,119228,13,0,15,15
-16094,True,119215,13,0,14,14
 16095,True,119213,13,0,14,14
 1720,True,119229,13,0,15,15
 2320,True,119230,13,0,19,19

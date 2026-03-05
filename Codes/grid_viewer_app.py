@@ -364,7 +364,7 @@ def build_figure(
         x=[tx], y=[ty],
         mode="markers",
         name="Selected grid",
-        marker=dict(symbol="triangle-up", size=16, color="black"),
+        marker=dict( size=16, color="black"),
         hovertemplate=f"Selected Grid ID: {int(grid_id)}<br>E: {tx:.1f} m<br>N: {ty:.1f} m<extra></extra>",
     ))
 
@@ -373,7 +373,13 @@ def build_figure(
         x=GX_ALL, y=GY_ALL,
         mode="markers",
         name="All gauges",
-        marker=dict(size=gauge_size, opacity=gauge_opacity, color="dodgerblue"),
+        marker=dict(
+            symbol="triangle-up",
+            size=gauge_size,
+            opacity=gauge_opacity,
+            color="dodgerblue",
+            line=dict(width=1, color="black"),
+        ),
         text=GID_ALL.astype(str),
         hovertemplate="Gauge ID: %{text}<br>E: %{x:.1f} m<br>N: %{y:.1f} m<extra></extra>",
     ))
@@ -384,7 +390,7 @@ def build_figure(
             x=GX_ALL[mask10], y=GY_ALL[mask10],
             mode="markers",
             name="Gauges ≤10 km",
-            marker=dict(size=max(gauge_size + 2, 8), opacity=0.95, color="blue"),
+            marker=dict(symbol="triangle-up",size=max(gauge_size + 2, 8), opacity=0.95, color="blue"),
             text=GID_ALL[mask10].astype(str),
             hovertemplate="Gauge ID: %{text}<extra></extra>",
         ))
@@ -395,7 +401,7 @@ def build_figure(
             x=GX_ALL[mask5], y=GY_ALL[mask5],
             mode="markers",
             name="Gauges ≤5 km",
-            marker=dict(size=max(gauge_size + 4, 10), opacity=1.0, color="navy"),
+            marker=dict(symbol="triangle-up",size=max(gauge_size + 4, 10), opacity=1.0, color="navy"),
             text=GID_ALL[mask5].astype(str),
             hovertemplate="Gauge ID: %{text}<extra></extra>",
         ))
@@ -405,7 +411,7 @@ def build_figure(
         x=GX_ALL[mask_sel7], y=GY_ALL[mask_sel7],
         mode="markers",
         name="Selected 7",
-        marker=dict(size=14, color="red", line=dict(width=1.5, color="black")),
+        marker=dict(symbol="triangle-up",size=14, color="red", line=dict(width=1.5, color="black")),
         text=GID_ALL[mask_sel7].astype(str),
         hovertemplate="Selected Gauge ID: %{text}<extra></extra>",
     ))

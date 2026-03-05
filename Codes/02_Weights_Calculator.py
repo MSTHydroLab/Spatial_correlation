@@ -144,13 +144,13 @@ def run_event(event_number: int, n_gauges: int, nugget: float = 0.0):
     for _, row in nei.iterrows():
         grid_id = int(row["id"])
 
-        ids   = [row.get(f"g{i}", np.nan)     for i in range(1, 8)]
-        dists = [row.get(f"d{i}_m", np.nan)   for i in range(1, 8)]
-        bears = [row.get(f"b{i}_deg", np.nan) for i in range(1, 8)]
+        ids   = [row.get(f"g{i}", np.nan)     for i in range(1, 11)]
+        dists = [row.get(f"d{i}_m", np.nan)   for i in range(1, 11)]
+        bears = [row.get(f"b{i}_deg", np.nan) for i in range(1, 11)]
 
         # Keep only stations allowed for this event
         filtered = []
-        for i in range(7):
+        for i in range(10):
             if pd.isna(ids[i]):
                 continue
             sid = int(float(ids[i]))
@@ -184,7 +184,7 @@ def run_event(event_number: int, n_gauges: int, nugget: float = 0.0):
     out_df = pd.DataFrame(results)
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    out_file = OUT_DIR / f"Event_{event_number}_weights_{n_gauges}gauges.csv"
+    out_file = OUT_DIR / f"Event_{event_number}_weights.csv"
     out_df.to_csv(out_file, index=False)
     print(f"Saved: {out_file}")
 

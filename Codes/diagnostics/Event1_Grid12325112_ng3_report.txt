@@ -1,0 +1,31 @@
+Event: 1
+Grid: 12325112
+Window (local): 2013053012 -> 2013053112  (n_hours=25)
+Correlation params from meta: a_km=35.26393109280407  b=2.050228697926201
+
+Weights QC:
+  g1=   16007  w1=-5.457518
+  g2=   16025  w2= 3.624537
+  g3=   16086  w3= 2.832980
+  sum(weights) = 1.000000
+  min/max weight = -5.457518 / 3.624537
+  count(weight<0) = 1
+  count(weight>1) = 2
+
+Gauge rainfall QC (within window, after alignment; before fill):
+  gauge=   16007  exists=True  n_nan=15  max_mm=67.056
+  gauge=   16025  exists=True  n_nan=14  max_mm=66.04
+  gauge=   16086  exists=True  n_nan=16  max_mm=42.672
+
+Grid rainfall QC (after filling missing as 0):
+  max(grid_rain_mm) = 15.111589984102427
+  p99(grid_rain_mm) = 13.780828848088422
+  time of max = 2013-05-31 12:00:00
+
+Contribution split at max hour (largest to smallest):
+  contrib_16025: 25.777710
+  contrib_16086: 11.513232
+  contrib_16007: -22.179352
+
+Wrote timeseries: /mnt/12TB/Sujan/Spatial_correlation/Codes/diagnostics/Event1_Grid12325112_ng3_timeseries.csv
+Wrote plot:       /mnt/12TB/Sujan/Spatial_correlation/Codes/diagnostics/Event1_Grid12325112_ng3_plot.png

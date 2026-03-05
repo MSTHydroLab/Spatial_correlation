@@ -14,7 +14,7 @@ TIME_LOCAL_COL = "time_local"
 TIME_UTC_COL   = "time_utc"
 RAIN_COL       = "rain_mm"
 
-N_GAUGES = 4  # <-- changed to 4
+N_GAUGES = 3  # <-- changed to 4
 
 
 # ---------------------------------------------------------
