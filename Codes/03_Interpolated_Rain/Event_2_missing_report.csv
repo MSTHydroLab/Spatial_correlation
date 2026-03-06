@@ -1,5 +1,5 @@
 event,event_start_local,event_end_local,n_event_hours,n_grids,n_gauges_used,n_gauges_per_grid
-2,2014-08-06 12:00:00,2014-08-07 12:00:00,25,533,68,4
+2,2014-08-06 12:00:00,2014-08-07 12:00:00,25,533,75,4
 
 station_id,file_exists,rows_read,n_duplicates_collapsed,n_bad_time_rows_dropped,n_missing_after_reindex,n_filled_as_zero
 16006,True,119224,13,0,17,17
@@ -40,6 +40,7 @@ station_id,file_exists,rows_read,n_duplicates_collapsed,n_bad_time_rows_dropped,
 16046,True,105153,12,0,18,18
 16047,True,105157,12,0,17,17
 16048,True,119216,13,0,17,17
+16049,True,119217,13,0,16,16
 16052,True,105162,12,0,15,15
 16053,True,104289,12,0,17,17
 16054,True,105153,12,0,15,15
@@ -55,6 +56,7 @@ station_id,file_exists,rows_read,n_duplicates_collapsed,n_bad_time_rows_dropped,
 16066,True,119210,13,0,16,16
 16067,True,119220,13,0,17,17
 16068,True,119222,13,0,17,17
+16069,True,119208,13,0,16,16
 16070,True,119218,13,0,14,14
 16071,True,119220,13,0,15,15
 16073,True,119208,13,0,16,16
@@ -63,10 +65,15 @@ station_id,file_exists,rows_read,n_duplicates_collapsed,n_bad_time_rows_dropped,
 16085,True,119220,13,0,17,17
 16086,True,119229,13,0,18,18
 16093,True,119228,13,0,16,16
+16094,True,119215,13,0,15,15
 16095,True,119213,13,0,16,16
 16096,True,96586,11,0,15,15
 1720,True,119229,13,0,17,17
+2420,True,119216,13,0,15,15
+2700,True,119218,13,0,16,16
+2710,True,119210,13,0,16,16
 2790,True,117991,13,0,16,16
 2800,True,119212,13,0,16,16
 5600,True,119208,13,0,16,16
 5700,True,119229,13,0,15,15
+7050,True,92086,11,0,18,18

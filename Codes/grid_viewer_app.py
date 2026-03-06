@@ -13,8 +13,7 @@ from functools import lru_cache          # ### NEW/CHANGED ###
 # ------------------- EDIT THESE PATHS -------------------
 GRID_CSV = "/mnt/12TB/Sujan/Spatial_correlation/Codes/01_Correlation_and_Variogram/grid_centers_full.csv"
 STATIONS_CSV = "/mnt/12TB/Sujan/Spatial_correlation/Codes/01_Correlation_and_Variogram/Stations_df.csv"
-NEAREST7_CSV = "/mnt/12TB/Sujan/Spatial_correlation/Codes/dependent_files/grid_nearest7.csv"
-
+WEIGHTS_DIR = Path("/mnt/12TB/Sujan/Spatial_correlation/Codes/02_OK_Weights")
 # ### NEW/CHANGED ### Kriging event files
 EVENT_DIR = Path("/mnt/12TB/Sujan/Spatial_correlation/Codes/03_Interpolated_Rain")
 EVENT_GLOB = "Event_*_grid_rain_hourly_mm.csv"
@@ -33,6 +32,14 @@ CATCHMENT_SHP_PATHS = [
     "/mnt/12TB/Sujan/Spatial_correlation/Codes/dependent_files/6893390/6893390.shp",
     "/mnt/12TB/Sujan/Spatial_correlation/Codes/dependent_files/06893080/6893080.shp",
     "/mnt/12TB/Sujan/Spatial_correlation/Codes/dependent_files/6892513/6892513.shp",
+]
+
+RAIN_COLORSCALE = [
+    [0.00, "rgb(255,255,255)"],
+    [0.20, "rgb(0,0,255)"],
+    [0.40, "rgb(0,180,0)"],
+    [0.70, "rgb(255,255,0)"],
+    [1.00, "rgb(255,0,0)"],
 ]
 # --------------------------------------------------------------------
 
@@ -100,11 +107,9 @@ def circle_xy(cx, cy, r_m, n=360):
 def load_data():
     grid_df = pd.read_csv(GRID_CSV)
     stn_df = pd.read_csv(STATIONS_CSV)
-    n7_df = pd.read_csv(NEAREST7_CSV)
 
     # IDs
     grid_df[GRID_ID_COL] = pd.to_numeric(grid_df[GRID_ID_COL], errors="coerce").astype("Int64")
-    n7_df[GRID_ID_COL] = pd.to_numeric(n7_df[GRID_ID_COL], errors="coerce").astype("Int64")
     stn_df[STN_ID_COL] = pd.to_numeric(stn_df[STN_ID_COL], errors="coerce").astype("Int64")
 
     # coords
@@ -116,30 +121,16 @@ def load_data():
     # drop bad rows
     grid_df = grid_df.dropna(subset=[GRID_ID_COL, GRID_X_COL, GRID_Y_COL]).copy()
     stn_df = stn_df.dropna(subset=[STN_ID_COL, STN_X_COL, STN_Y_COL]).copy()
-    n7_df = n7_df.dropna(subset=[GRID_ID_COL]).copy()
 
     grid_df[GRID_ID_COL] = grid_df[GRID_ID_COL].astype(int)
-    n7_df[GRID_ID_COL] = n7_df[GRID_ID_COL].astype(int)
     stn_df[STN_ID_COL] = stn_df[STN_ID_COL].astype(int)
 
-    # nearest7 mapping
-    n7_map = {}
-    for _, r in n7_df.iterrows():
-        gid = int(r[GRID_ID_COL])
-        ids = []
-        for i in range(1, 8):
-            c = f"g{i}"
-            if c in r.index and pd.notna(r[c]):
-                try:
-                    ids.append(int(r[c]))
-                except Exception:
-                    pass
-        n7_map[gid] = ids
+   
 
-    return grid_df, stn_df, n7_map
+    return grid_df, stn_df
 
 
-GRID_DF, STN_DF, N7_MAP = load_data()
+GRID_DF, STN_DF = load_data()
 
 CATCH_GDF = load_catchments(
     CATCHMENT_SHP_PATHS,
@@ -187,6 +178,71 @@ def discover_events():
 AVAILABLE_EVENTS = discover_events()
 if not AVAILABLE_EVENTS:
     print(f"[events] No event files found in {EVENT_DIR} matching {EVENT_GLOB}")
+
+@lru_cache(maxsize=6)
+def load_event_weights_map(event_no: int):
+    """
+    Reads Event_{n}_weights.csv and returns:
+      weights_map[grid_id] = [
+          {"gauge_id": ..., "weight": ...},
+          ...
+      ]
+    Works for g1..gN / w1..wN depending on available columns.
+    """
+    f = WEIGHTS_DIR / f"Event_{int(event_no)}_weights.csv"
+    if not f.exists():
+        raise FileNotFoundError(f"Weights file not found: {f}")
+
+    df = pd.read_csv(f)
+
+    if "id" not in df.columns:
+        raise ValueError(f"{f} must contain an 'id' column.")
+
+    # find all g-columns dynamically: g1, g2, g3, g4, ...
+    g_cols = []
+    for c in df.columns:
+        if re.fullmatch(r"g\d+", str(c)):
+            g_cols.append(c)
+
+    # sort numerically, so g1,g2,g3,... not g1,g10,g2
+    g_cols = sorted(g_cols, key=lambda x: int(x[1:]))
+
+    weights_map = {}
+
+    for _, row in df.iterrows():
+        try:
+            gid = int(row["id"])
+        except Exception:
+            continue
+
+        chosen = []
+        for gcol in g_cols:
+            idx = gcol[1:]          # "1", "2", ...
+            wcol = f"w{idx}"
+
+            if gcol not in row.index or wcol not in row.index:
+                continue
+            if pd.isna(row[gcol]):
+                continue
+
+            try:
+                gauge_id = int(row[gcol])
+            except Exception:
+                continue
+
+            try:
+                weight = float(row[wcol]) if pd.notna(row[wcol]) else np.nan
+            except Exception:
+                weight = np.nan
+
+            chosen.append({
+                "gauge_id": gauge_id,
+                "weight": weight
+            })
+
+        weights_map[gid] = chosen
+
+    return weights_map
 
 @lru_cache(maxsize=6)
 def load_event_matrix(event_no: int):
@@ -251,13 +307,65 @@ def load_event_matrix(event_no: int):
 
     return times, rain_mat, vmin, vmax
 
+@lru_cache(maxsize=6)
+def load_event_station_matrix(event_no: int):
+    f = EVENT_DIR / f"Event_{int(event_no)}_station_rain_used_hourly_mm.csv"
+    if not f.exists():
+        raise FileNotFoundError(f"Station event file not found: {f}")
+
+    df = pd.read_csv(f)
+
+    if "time_local" not in df.columns:
+        raise ValueError(f"{f} must contain a 'time_local' column.")
+
+    # parse times
+    t = pd.to_datetime(df["time_local"], errors="coerce")
+    if t.isna().all():
+        raise ValueError(f"Could not parse time_local in {f}.")
+
+    times = pd.DatetimeIndex(t)
+
+    # station columns
+    col_ids = []
+    for c in df.columns:
+        if c == "time_local":
+            continue
+        try:
+            col_ids.append(int(c))
+        except Exception:
+            pass
+
+    col_lookup = {int(c): str(c) for c in col_ids}
+
+    ntime = len(df)
+    nstn = len(GID_ALL)
+    rain_mat = np.full((ntime, nstn), np.nan, dtype=float)
+
+    # align to station arrays GID_ALL / GX_ALL / GY_ALL
+    for j, sid in enumerate(GID_ALL):
+        c = col_lookup.get(int(sid), None)
+        if c is not None:
+            rain_mat[:, j] = pd.to_numeric(df[c], errors="coerce").to_numpy(float)
+
+    # sort by time
+    order = np.argsort(times.values)
+    times = times[order]
+    rain_mat = rain_mat[order, :]
+
+    finite = rain_mat[np.isfinite(rain_mat)]
+    if finite.size == 0:
+        vmin, vmax = 0.0, 1.0
+    else:
+        vmin, vmax = 0.0, float(np.nanmax(finite))   # fixed across all times for the event
+        if vmax <= 0:
+            vmax = 1.0
+
+    return times, rain_mat, vmin, vmax
 
 def build_figure(
     grid_id: int,
     show_lines: bool,
     circle_km_list,
-    highlight10: bool,
-    highlight5: bool,
     centroid_size: int,
     centroid_opacity: float,
     gauge_size: int,
@@ -266,23 +374,60 @@ def build_figure(
     time_idx: int | None,          # ### NEW/CHANGED ###
 ):
     # selected grid coords
+    
     row = GRID_DF.loc[GRID_DF[GRID_ID_COL] == int(grid_id)].iloc[0]
     tx = float(row[GRID_X_COL])
     ty = float(row[GRID_Y_COL])
-
+    station_rain = None
+    station_vmin, station_vmax = 0.0, 1.0
     # distances
     dx = GX_ALL - tx
     dy = GY_ALL - ty
     dist = np.sqrt(dx * dx + dy * dy)
-    mask10 = dist <= 10_000.0
-    mask5 = dist <= 5_000.0
 
-    # selected 7
-    selected_ids = N7_MAP.get(int(grid_id), [])
-    mask_sel7 = np.isin(GID_ALL, np.array(selected_ids, dtype=int))
-    missing_ids = [i for i in selected_ids if i not in GID_SET]
+    # weighted gages
+    selected_gauges = []
+    if event_no is not None:
+        try:
+            weights_map = load_event_weights_map(int(event_no))
+            selected_gauges = weights_map.get(int(grid_id), [])
+        except Exception as e:
+            print(f"[weights] load failed for event {event_no}: {e}")
+            selected_gauges = []
 
+    selected_ids = [d["gauge_id"] for d in selected_gauges]
+    selected_weights_lookup = {d["gauge_id"]: d["weight"] for d in selected_gauges}
+    
     fig = go.Figure()
+    
+    mask_selected = np.isin(GID_ALL, np.array(selected_ids, dtype=int)) if selected_ids else np.zeros(len(GID_ALL), dtype=bool)
+    missing_ids = [i for i in selected_ids if i not in GID_SET]
+    
+    #lines st to weighed gages
+    
+    if show_lines and selected_ids:
+        for d in selected_gauges:
+            sid = d["gauge_id"]
+            w = d["weight"]
+
+            hit = np.where(GID_ALL == int(sid))[0]
+            if len(hit) == 0:
+                continue
+            j = hit[0]
+
+            fig.add_trace(go.Scatter(
+                x=[tx, GX_ALL[j]],
+                y=[ty, GY_ALL[j]],
+                mode="lines",
+                showlegend=False,
+                line=dict(width=1, color="black"),
+                customdata=[[sid, w], [sid, w]],
+                hovertemplate=(
+                    "Gauge ID: %{customdata[0]}"
+                    "<br>Weight: %{customdata[1]:.4f}"
+                    "<extra></extra>"
+                ),
+            ))
 
     # Catchment polygons (background)
     if not CATCH_GDF.empty:
@@ -294,10 +439,16 @@ def build_figure(
     rain_note = "No event selected."
     if event_no is not None and event_no in AVAILABLE_EVENTS:
         try:
-            times, rain_mat, vmin, vmax = load_event_matrix(int(event_no))
+            times, rain_mat, vmin_grid, vmax_grid = load_event_matrix(int(event_no))
+            st_times, st_rain_mat, station_vmin, station_vmax = load_event_station_matrix(int(event_no))
+            common_vmin = 0.0
+            common_vmax = max(vmax_grid, station_vmax)
+            if common_vmax <= 0:
+                common_vmax = 1.0
             if time_idx is None:
                 time_idx = 0
             time_idx = int(np.clip(time_idx, 0, len(times) - 1))
+            station_rain = st_rain_mat[time_idx, :]
 
             z = rain_mat[time_idx, :]
             ts_label = str(times[time_idx])
@@ -310,15 +461,9 @@ def build_figure(
                     size=centroid_size,
                     opacity=centroid_opacity,
                     color=z,
-                    colorscale=[
-                        [0.00, "rgb(255,255,255)"],   # white
-                        [0.20, "rgb(0,0,255)"],       # blue
-                        [0.40, "rgb(0,180,0)"],       # green
-                        [0.70, "rgb(255,255,0)"],     # yellow
-                        [1.00, "rgb(255,0,0)"],       # red
-                    ],
-                    cmin=vmin,
-                    cmax=vmax,
+                    colorscale=RAIN_COLORSCALE,
+                    cmin=common_vmin,
+                    cmax=common_vmax,
                     colorbar=dict(title="Rain (mm)"),
                 ),
                 customdata=GRID_ID_ARR,
@@ -326,6 +471,8 @@ def build_figure(
             ))
             rain_note = f"Event {event_no}, time: {ts_label} (index {time_idx}/{len(times)-1})"
         except Exception as e:
+            print(f"[station rain] load failed for event {event_no}: {e}")
+            station_rain = None
             # fallback: plain centroids if event load fails
             fig.add_trace(go.Scatter(
                 x=GRID_X, y=GRID_Y,
@@ -368,66 +515,97 @@ def build_figure(
         hovertemplate=f"Selected Grid ID: {int(grid_id)}<br>E: {tx:.1f} m<br>N: {ty:.1f} m<extra></extra>",
     ))
 
-    # All gauges
-    fig.add_trace(go.Scatter(
-        x=GX_ALL, y=GY_ALL,
-        mode="markers",
-        name="All gauges",
-        marker=dict(
-            symbol="triangle-up",
-            size=gauge_size,
-            opacity=gauge_opacity,
-            color="dodgerblue",
-            line=dict(width=1, color="black"),
-        ),
-        text=GID_ALL.astype(str),
-        hovertemplate="Gauge ID: %{text}<br>E: %{x:.1f} m<br>N: %{y:.1f} m<extra></extra>",
-    ))
+    if station_rain is not None:
+        used_mask = np.isfinite(station_rain)
+        unused_mask = ~used_mask
 
-    # Highlight ≤10 km
-    if highlight10:
-        fig.add_trace(go.Scatter(
-            x=GX_ALL[mask10], y=GY_ALL[mask10],
-            mode="markers",
-            name="Gauges ≤10 km",
-            marker=dict(symbol="triangle-up",size=max(gauge_size + 2, 8), opacity=0.95, color="blue"),
-            text=GID_ALL[mask10].astype(str),
-            hovertemplate="Gauge ID: %{text}<extra></extra>",
-        ))
-
-    # Highlight ≤5 km
-    if highlight5:
-        fig.add_trace(go.Scatter(
-            x=GX_ALL[mask5], y=GY_ALL[mask5],
-            mode="markers",
-            name="Gauges ≤5 km",
-            marker=dict(symbol="triangle-up",size=max(gauge_size + 4, 10), opacity=1.0, color="navy"),
-            text=GID_ALL[mask5].astype(str),
-            hovertemplate="Gauge ID: %{text}<extra></extra>",
-        ))
-
-    # Selected 7
-    fig.add_trace(go.Scatter(
-        x=GX_ALL[mask_sel7], y=GY_ALL[mask_sel7],
-        mode="markers",
-        name="Selected 7",
-        marker=dict(symbol="triangle-up",size=14, color="red", line=dict(width=1.5, color="black")),
-        text=GID_ALL[mask_sel7].astype(str),
-        hovertemplate="Selected Gauge ID: %{text}<extra></extra>",
-    ))
-
-    # Lines to selected 7
-    if show_lines and mask_sel7.any():
-        idxs = np.where(mask_sel7)[0]
-        for j in idxs:
+        # Unused gauges in gray
+        if unused_mask.any():
             fig.add_trace(go.Scatter(
-                x=[tx, GX_ALL[j]], y=[ty, GY_ALL[j]],
-                mode="lines",
-                showlegend=False,
-                hoverinfo="skip",
-                line=dict(width=1, color="black"),
+                x=GX_ALL[unused_mask], y=GY_ALL[unused_mask],
+                mode="markers",
+                name="Unused gauges",
+                marker=dict(
+                    symbol="triangle-up",
+                    size=gauge_size,
+                    opacity=max(gauge_opacity, 0.35),
+                    color="lightgray",
+                    line=dict(width=0.8, color="black"),
+                ),
+                text=GID_ALL[unused_mask].astype(str),
+                hovertemplate="Gauge ID: %{text}<br>Not used in this event<extra></extra>",
             ))
 
+        # Used gauges colored by rainfall
+        if used_mask.any():
+            fig.add_trace(go.Scatter(
+                x=GX_ALL[used_mask], y=GY_ALL[used_mask],
+                mode="markers",
+                name="Gauge rain",
+                marker=dict(
+                    symbol="triangle-up",
+                    size=gauge_size + 2,
+                    opacity=0.95,
+                    color=station_rain[used_mask],
+                    colorscale=RAIN_COLORSCALE,
+                    cmin=common_vmin,
+                    cmax=common_vmax,
+                    line=dict(width=1, color="black"),
+                    showscale=False,
+                ),
+                text=GID_ALL[used_mask].astype(str),
+                customdata=np.round(station_rain[used_mask], 3),
+                hovertemplate=(
+                    "Gauge ID: %{text}"
+                    "<br>Rain: %{customdata:.3f} mm"
+                    "<br>E: %{x:.1f} m"
+                    "<br>N: %{y:.1f} m"
+                    "<extra></extra>"
+                ),
+            ))
+    else:
+        # fallback if station event file is missing
+        fig.add_trace(go.Scatter(
+            x=GX_ALL, y=GY_ALL,
+            mode="markers",
+            name="All gauges",
+            marker=dict(
+                symbol="triangle-up",
+                size=gauge_size,
+                opacity=gauge_opacity,
+                color="dodgerblue",
+                line=dict(width=1, color="black"),
+            ),
+            text=GID_ALL.astype(str),
+            hovertemplate="Gauge ID: %{text}<br>E: %{x:.1f} m<br>N: %{y:.1f} m<extra></extra>",
+        ))
+
+        # Selected 7
+    if selected_ids:
+        sel_idx = np.where(mask_selected)[0]
+
+        sel_weights = np.array([selected_weights_lookup.get(int(gid), np.nan) for gid in GID_ALL[sel_idx]], dtype=float)
+
+        fig.add_trace(go.Scatter(
+            x=GX_ALL[sel_idx],
+            y=GY_ALL[sel_idx],
+            mode="markers",
+            name="Weighted gauges",
+            marker=dict(
+                symbol="triangle-up",
+                size=gauge_size + 8,
+                color="rgba(0,0,0,0)",   # transparent fill so rainfall color stays visible underneath
+                line=dict(width=2.5, color="red"),
+            ),
+            text=GID_ALL[sel_idx].astype(str),
+            customdata=np.column_stack([GID_ALL[sel_idx], sel_weights]),
+            hovertemplate=(
+                "Gauge ID: %{customdata[0]}"
+                "<br>Weight: %{customdata[1]:.4f}"
+                "<extra></extra>"
+            ),
+        ))
+    
     # Circles
     for km in sorted(circle_km_list):
         xc, yc = circle_xy(tx, ty, float(km) * 1000.0)
@@ -456,8 +634,6 @@ def build_figure(
     info = {
         "selected_ids_count": len(selected_ids),
         "missing_ids": missing_ids,
-        "count10": int(mask10.sum()),
-        "count5": int(mask5.sum()),
     }
     return fig, info
 
@@ -530,7 +706,7 @@ app.layout = html.Div(
 
                 dcc.Checklist(
                     id="show-lines",
-                    options=[{"label": "Show lines to selected 7", "value": "on"}],
+                    options=[{"label": "Show lines to weighted gauges", "value": "on"}],
                     value=["on"],
                 ),
 
@@ -546,17 +722,6 @@ app.layout = html.Div(
                 ),
 
                 html.Div(style={"height": "8px"}),
-
-                dcc.Checklist(
-                    id="highlight10",
-                    options=[{"label": "Highlight gauges within 10 km", "value": "on"}],
-                    value=["on"],
-                ),
-                dcc.Checklist(
-                    id="highlight5",
-                    options=[{"label": "Highlight gauges within 5 km", "value": "on"}],
-                    value=["on"],
-                ),
 
                 html.Hr(),
 
@@ -693,8 +858,6 @@ def sync_time_controls(event_no, n_intervals, slider_value, playing):
     Input("selected-grid-store", "data"),
     Input("show-lines", "value"),
     Input("circles", "value"),
-    Input("highlight10", "value"),
-    Input("highlight5", "value"),
     Input("centroid-size", "value"),
     Input("centroid-opacity", "value"),
     Input("gauge-size", "value"),
@@ -707,8 +870,6 @@ def redraw(
     grid_id,
     show_lines_value,
     circles_value,
-    highlight10_value,
-    highlight5_value,
     centroid_size,
     centroid_opacity,
     gauge_size,
@@ -718,16 +879,12 @@ def redraw(
     time_idx,
 ):
     show_lines = "on" in (show_lines_value or [])
-    highlight10 = "on" in (highlight10_value or [])
-    highlight5 = "on" in (highlight5_value or [])
     circle_km_list = circles_value or []
 
     fig, info = build_figure(
         int(grid_id),
         show_lines=show_lines,
         circle_km_list=circle_km_list,
-        highlight10=highlight10,
-        highlight5=highlight5,
         centroid_size=int(centroid_size),
         centroid_opacity=float(centroid_opacity),
         gauge_size=int(gauge_size),
@@ -742,9 +899,7 @@ def redraw(
 
     status = (
         f"Selected grid: {int(grid_id)}\n"
-        f"Selected-7 count: {info['selected_ids_count']}\n"
-        f"Gauges ≤10 km: {info['count10']}\n"
-        f"Gauges ≤5 km: {info['count5']}\n"
+        f"Weighted gauges count: {info['selected_ids_count']}\n"
     )
     if info["missing_ids"]:
         status += f"Missing selected-7 in Stations_df: {info['missing_ids']}\n"
