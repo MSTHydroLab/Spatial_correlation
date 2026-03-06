@@ -595,7 +595,7 @@ def build_figure(
                 symbol="triangle-up",
                 size=gauge_size + 8,
                 color="rgba(0,0,0,0)",   # transparent fill so rainfall color stays visible underneath
-                line=dict(width=2.5, color="red"),
+                line=dict(width=0.5, color="red"),
             ),
             text=GID_ALL[sel_idx].astype(str),
             customdata=np.column_stack([GID_ALL[sel_idx], sel_weights]),
