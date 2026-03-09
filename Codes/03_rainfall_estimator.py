@@ -2,7 +2,7 @@ from pathlib import Path
 import argparse
 import numpy as np
 import pandas as pd
-import re
+
 # ---------------- Paths / columns ----------------
 WEIGHTS_DIR = Path("/mnt/12TB/Sujan/Spatial_correlation/Codes/02_OK_Weights")
 EVENT_META_DIR = Path("/mnt/12TB/Sujan/Spatial_correlation/Codes/01_Correlation_and_Variogram")
@@ -14,6 +14,7 @@ TIME_LOCAL_COL = "time_local"
 TIME_UTC_COL   = "time_utc"
 RAIN_COL       = "rain_mm"
 
+N_GAUGES = 4  # <-- changed to 4
 
 
 # ---------------------------------------------------------
@@ -29,31 +30,6 @@ def make_window(start_str: str, end_str: str):
     idx = pd.date_range(start, end, freq="1h")
     return start, end, idx
 
-def detect_gauge_pairs(columns):
-    """
-    Detect available (gk, wk) pairs from weights file columns.
-    Returns a sorted list like:
-    [("g1", "w1"), ("g2", "w2"), ("g3", "w3")]
-    """
-    cols = set(columns)
-    pairs = []
-
-    gauge_nums = []
-    for c in cols:
-        m = re.fullmatch(r"g(\d+)", str(c))
-        if m:
-            gauge_nums.append(int(m.group(1)))
-
-    for k in sorted(gauge_nums):
-        gcol = f"g{k}"
-        wcol = f"w{k}"
-        if wcol in cols:
-            pairs.append((gcol, wcol))
-
-    if not pairs:
-        raise ValueError("No gauge/weight column pairs like g1/w1, g2/w2 found.")
-
-    return pairs
 
 def load_event_window(event_number: int):
     fp = EVENT_META_DIR / f"Event_{event_number}_Stations_correlation.csv"
@@ -125,22 +101,22 @@ def load_station_series_local(station_id: str, start: pd.Timestamp, end: pd.Time
 # ---------------------------------------------------------
 # 3) Load weights: id, g1..g4, w1..w4
 # ---------------------------------------------------------
-def load_weights(event_number: int) -> tuple[pd.DataFrame, list[tuple[str, str]]]:
+def load_weights(event_number: int) -> pd.DataFrame:
     fp = WEIGHTS_DIR / f"Event_{event_number}_weights.csv"
     W = pd.read_csv(fp)
 
-    if "id" not in W.columns:
-        raise ValueError(f"{fp} must contain column 'id'")
-
-    gauge_pairs = detect_gauge_pairs(W.columns)
-
     req = ["id"]
-    for gcol, wcol in gauge_pairs:
-        req += [gcol, wcol]
+    for k in range(1, N_GAUGES + 1):
+        req += [f"g{k}", f"w{k}"]
+
+    miss = [c for c in req if c not in W.columns]
+    if miss:
+        raise ValueError(f"{fp} missing required columns: {miss}")
 
     W = W[req].copy()
     W["id"] = W["id"].astype(str)
 
+    # Clean gauge ids like 12345.0 -> 12345
     def clean_gid(x):
         if pd.isna(x):
             return ""
@@ -153,17 +129,19 @@ def load_weights(event_number: int) -> tuple[pd.DataFrame, list[tuple[str, str]]
             pass
         return s
 
-    for gcol, wcol in gauge_pairs:
+    for k in range(1, N_GAUGES + 1):
+        gcol = f"g{k}"
+        wcol = f"w{k}"
         W[gcol] = W[gcol].apply(clean_gid)
         W[wcol] = pd.to_numeric(W[wcol], errors="coerce").fillna(0.0)
 
-    return W, gauge_pairs
+    return W
 
 
 # ---------------------------------------------------------
 # 4) Compute rainfall timeseries for all grid ids
 # ---------------------------------------------------------
-def compute_grid_rain(W: pd.DataFrame, R: pd.DataFrame, gauge_pairs: list[tuple[str, str]]) -> pd.DataFrame:
+def compute_grid_rain(W: pd.DataFrame, R: pd.DataFrame) -> pd.DataFrame:
     station_cols = {str(c): i for i, c in enumerate(R.columns)}
     Rmat = R.to_numpy(dtype=float)
 
@@ -173,7 +151,10 @@ def compute_grid_rain(W: pd.DataFrame, R: pd.DataFrame, gauge_pairs: list[tuple[
 
     out = np.zeros((T, ngrids), dtype=float)
 
-    for gcol, wcol in gauge_pairs:
+    for k in range(1, N_GAUGES + 1):
+        gcol = f"g{k}"
+        wcol = f"w{k}"
+
         gids = W[gcol].to_numpy()
         w = W[wcol].to_numpy(dtype=float)
 
@@ -197,11 +178,11 @@ def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     start, end, event_idx = load_event_window(args.event)
-    W, gauge_pairs = load_weights(args.event)
+    W = load_weights(args.event)
 
     # All unique gauges referenced in weights
-    gcols = [gcol for gcol, _ in gauge_pairs]
-    gauges = pd.unique(pd.concat([W[gcol] for gcol in gcols], axis=0))
+    gcols = [f"g{k}" for k in range(1, N_GAUGES + 1)]
+    gauges = pd.unique(pd.concat([W[c] for c in gcols], axis=0))
     gauges = [g for g in gauges if isinstance(g, str) and g != ""]
     gauges = sorted(set(gauges))
 
@@ -227,14 +208,9 @@ def main():
 
     # Treat missing as 0
     R_filled = R.fillna(0.0)
-    # Export rainfall used from all unique stations in this event
-    out_station_rain = OUT_DIR / f"Event_{args.event}_station_rain_used_hourly_mm.csv"
-    station_df = R_filled.copy()
-    station_df.insert(0, "time_local", station_df.index.astype(str))
-    station_df.to_csv(out_station_rain, index=False)
 
     # Interpolate
-    grid_rain = compute_grid_rain(W, R_filled, gauge_pairs)
+    grid_rain = compute_grid_rain(W, R_filled)
 
     # Export rainfall file
     out_rain = OUT_DIR / f"Event_{args.event}_grid_rain_hourly_mm.csv"
@@ -254,7 +230,7 @@ def main():
         "n_event_hours": len(event_idx),
         "n_grids": len(W),
         "n_gauges_used": len(gauges),
-        "n_gauges_per_grid": len(gauge_pairs),
+        "n_gauges_per_grid": N_GAUGES,
     }])
 
     out_missing = OUT_DIR / f"Event_{args.event}_missing_report.csv"
@@ -265,7 +241,6 @@ def main():
 
     print(f"Wrote: {out_rain}")
     print(f"Wrote: {out_missing}")
-    print(f"Wrote: {out_station_rain}")
 
 
 if __name__ == "__main__":

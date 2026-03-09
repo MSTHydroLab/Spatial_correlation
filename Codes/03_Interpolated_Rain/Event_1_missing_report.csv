@@ -1,5 +1,5 @@
 event,event_start_local,event_end_local,n_event_hours,n_grids,n_gauges_used,n_gauges_per_grid
-1,2013-05-30 12:00:00,2013-05-31 12:00:00,25,533,67,3
+1,2013-05-30 12:00:00,2013-05-31 12:00:00,25,525,67,4
 
 station_id,file_exists,rows_read,n_duplicates_collapsed,n_bad_time_rows_dropped,n_missing_after_reindex,n_filled_as_zero
 16006,True,119224,13,0,14,14
