@@ -69,7 +69,7 @@ def load_catchments(shp_paths, target_epsg=4326, simplify_tol_deg=0.0001):
     return out
 
 
-def polygon_to_traces(geom, line_width=1, fill_opacity=0.05):
+def polygon_to_traces(geom, line_width=1.5):
     traces = []
 
     def add_poly(poly: Polygon):
@@ -79,9 +79,7 @@ def polygon_to_traces(geom, line_width=1, fill_opacity=0.05):
                 x=list(x),
                 y=list(y),
                 mode="lines",
-                line=dict(width=line_width, color="rgba(0,0,0,0.25)"),
-                fill="toself",
-                fillcolor=f"rgba(0,0,0,{fill_opacity})",
+                line=dict(width=line_width, color="rgba(0,0,0,0.9)"),
                 hoverinfo="skip",
                 showlegend=False,
             )
@@ -315,6 +313,24 @@ def load_event_station_matrix(event_no: int):
 
     return times, rain_mat, vmin, vmax
 
+@lru_cache(maxsize=12)
+def load_event_station_ids(event_no: int):
+    f = EVENT_TS_DIR / f"Event_{int(event_no)}_all_used_station_timeseries.csv"
+    if not f.exists():
+        raise FileNotFoundError(f"Station event file not found: {f}")
+
+    df = pd.read_csv(f)
+
+    station_ids = set()
+    for c in df.columns:
+        if c == "time_local":
+            continue
+        try:
+            station_ids.add(int(float(str(c).strip())))
+        except Exception:
+            pass
+
+    return station_ids
 
 def build_figure(
     grid_id: int,
@@ -326,18 +342,25 @@ def build_figure(
     gauge_opacity: float,
     event_no: int | None,
     time_idx: int | None,
-):
+    ):
     row = GRID_DF.loc[GRID_DF[GRID_ID_COL] == int(grid_id)].iloc[0]
     tx = float(row[GRID_LON_COL])
     ty = float(row[GRID_LAT_COL])
 
     selected_gauges = []
-    if event_no is not None:
+    event_station_ids = set()
+
+    if event_no is not None and event_no in AVAILABLE_EVENTS:
         try:
             weights_map = load_event_weights_map(int(event_no))
             selected_gauges = weights_map.get(int(grid_id), [])
         except Exception as e:
             print(f"[weights] load failed for event {event_no}: {e}")
+
+        try:
+            event_station_ids = load_event_station_ids(int(event_no))
+        except Exception as e:
+            print(f"[event stations] load failed for event {event_no}: {e}")
 
     selected_ids = [d["gauge_id"] for d in selected_gauges]
     selected_weights_lookup = {d["gauge_id"]: d["weight"] for d in selected_gauges}
@@ -345,11 +368,10 @@ def build_figure(
     fig = go.Figure()
     mask_selected = np.isin(STN_ID_ARR, np.array(selected_ids, dtype=int)) if selected_ids else np.zeros(len(STN_ID_ARR), dtype=bool)
     missing_ids = [i for i in selected_ids if i not in STN_ID_SET]
-
+    catchment_traces = []
     if not CATCH_GDF.empty:
         for geom in CATCH_GDF.geometry:
-            for tr in polygon_to_traces(geom, line_width=1, fill_opacity=0.08):
-                fig.add_trace(tr)
+            catchment_traces.extend(polygon_to_traces(geom, line_width=1.5))
 
     station_rain = None
     common_vmin, common_vmax = 0.0, 1.0
@@ -378,12 +400,13 @@ def build_figure(
             station_rain = st_rain_mat[time_idx, :]
             ts_label = times[time_idx].strftime("%Y-%m-%d %H:%M")
 
-            fig.add_trace(go.Scattergl(
+            fig.add_trace(go.Scatter(
                 x=GRID_LON,
                 y=GRID_LAT,
                 mode="markers",
                 name="Rain (centroids)",
                 marker=dict(
+                    symbol="square",
                     size=centroid_size,
                     opacity=centroid_opacity,
                     color=z,
@@ -391,11 +414,16 @@ def build_figure(
                     cmin=common_vmin,
                     cmax=common_vmax,
                     colorbar=dict(title="Rain (mm)"),
+                    line=dict(width=0),
                 ),
-                customdata=np.column_stack([GRID_ID_ARR, z]),
+                customdata=np.column_stack([
+                    GRID_ID_ARR,
+                    np.repeat("grid", len(GRID_ID_ARR)),
+                    z
+                ]),
                 hovertemplate=(
                     "Grid ID: %{customdata[0]}"
-                    "<br>Rain: %{customdata[1]:.3f} mm"
+                    "<br>Rain: %{customdata[2]:.3f} mm"
                     "<br>Lon: %{x:.5f}"
                     "<br>Lat: %{y:.5f}"
                     "<extra></extra>"
@@ -404,14 +432,29 @@ def build_figure(
             rain_note = f"Event {event_no}, time: {ts_label}"
         except Exception as e:
             print(f"[event load] fallback due to: {e}")
-            fig.add_trace(go.Scattergl(
+            fig.add_trace(go.Scatter(
                 x=GRID_LON,
                 y=GRID_LAT,
                 mode="markers",
                 name="Centroids",
-                marker=dict(size=centroid_size, opacity=centroid_opacity, color="gray"),
-                customdata=GRID_ID_ARR,
-                hovertemplate="Grid ID: %{customdata}<br>Lon: %{x:.5f}<br>Lat: %{y:.5f}<extra></extra>",
+                marker=dict(
+                    symbol="square",
+                    size=centroid_size,
+                    opacity=centroid_opacity,
+                    color="gray",
+                    line=dict(width=0),
+                ),
+                customdata=np.column_stack([
+                    GRID_ID_ARR,
+                    np.repeat("grid", len(GRID_ID_ARR)),
+                    np.repeat(np.nan, len(GRID_ID_ARR))
+                ]),
+                hovertemplate=(
+                    "Grid ID: %{customdata[0]}"
+                    "<br>Lon: %{x:.5f}"
+                    "<br>Lat: %{y:.5f}"
+                    "<extra></extra>"
+                ),
             ))
             rain_note = f"Event load failed: {e}"
     else:
@@ -420,32 +463,25 @@ def build_figure(
             y=GRID_LAT,
             mode="markers",
             name="Centroids",
-            marker=dict(size=centroid_size, opacity=centroid_opacity, color="gray"),
+            marker=dict(
+            symbol="square",size=centroid_size, opacity=centroid_opacity, color="gray"),
             customdata=GRID_ID_ARR,
             hovertemplate="Grid ID: %{customdata}<br>Lon: %{x:.5f}<br>Lat: %{y:.5f}<extra></extra>",
         ))
 
-    fig.add_trace(go.Scatter(
-        x=GRID_LON,
-        y=GRID_LAT,
-        mode="markers",
-        name="Centroid hitbox",
-        marker=dict(
-            size=max(centroid_size + 14, 20),
-            opacity=0.01,                  # not zero
-            color="rgba(0,0,0,0.01)"       # almost invisible but clickable
-        ),
-        customdata=GRID_ID_ARR,
-        hoverinfo="skip",
-        showlegend=False,
-    ))
+
 
     fig.add_trace(go.Scattergl(
         x=[tx],
         y=[ty],
         mode="markers",
         name="Selected grid",
-        marker=dict(size=16, color="black"),
+        marker=dict(
+            symbol="square-open",
+            size=centroid_size + 10,
+            color="black",
+            line=dict(width=2, color="black")
+        ),
         customdata=[[int(grid_id), selected_grid_rain, tx, ty]],
         hovertemplate=(
             "Grid ID: %{customdata[0]}"
@@ -456,23 +492,6 @@ def build_figure(
         ),
     ))
 
-    if show_lines and selected_ids:
-        for d in selected_gauges:
-            sid = d["gauge_id"]
-            w = d["weight"]
-            hit = np.where(STN_ID_ARR == int(sid))[0]
-            if len(hit) == 0:
-                continue
-            j = hit[0]
-            fig.add_trace(go.Scatter(
-                x=[tx, STN_LON[j]],
-                y=[ty, STN_LAT[j]],
-                mode="lines",
-                showlegend=False,
-                line=dict(width=1, color="black"),
-                hoverinfo="skip",
-            ))
-
     if station_rain is not None:
         selected_mask = (
             np.isin(STN_ID_ARR, np.array(selected_ids, dtype=int))
@@ -480,13 +499,13 @@ def build_figure(
             np.zeros(len(STN_ID_ARR), dtype=bool)
         )
 
-        used_mask = np.isfinite(station_rain) | selected_mask
-        unused_mask = ~used_mask
+        event_station_mask = np.isin(STN_ID_ARR, np.array(sorted(event_station_ids), dtype=int))
+        used_mask = event_station_mask
+        unused_mask = np.zeros(len(STN_ID_ARR), dtype=bool)
 
         rain_for_plot = station_rain.copy()
         rain_for_plot[selected_mask & ~np.isfinite(rain_for_plot)] = 0.0
 
-        # weights only for gauges selected for this centroid
         weight_for_plot = np.full(len(STN_ID_ARR), np.nan, dtype=float)
         for i, sid in enumerate(STN_ID_ARR):
             if int(sid) in selected_weights_lookup:
@@ -506,7 +525,7 @@ def build_figure(
                     line=dict(width=0.8, color="black"),
                 ),
                 text=STN_ID_ARR[unused_mask].astype(str),
-                hovertemplate="Gauge ID: %{text}<br>Not used in this event file<extra></extra>",
+                hovertemplate="Gauge ID: %{text}<br>Not in this event station file<extra></extra>",
             ))
 
         if used_mask.any():
@@ -560,9 +579,19 @@ def build_figure(
             hovertemplate="Gauge ID: %{text}<br>Lon: %{x:.5f}<br>Lat: %{y:.5f}<extra></extra>",
         ))
 
-    if selected_ids:
-        sel_idx = np.where(mask_selected)[0]
-        sel_weights = np.array([selected_weights_lookup.get(int(gid), np.nan) for gid in STN_ID_ARR[sel_idx]], dtype=float)
+    positive_selected_ids = [
+        d["gauge_id"] for d in selected_gauges
+        if pd.notna(d.get("weight", np.nan)) and float(d["weight"]) > 0
+    ]
+
+    if positive_selected_ids:
+        positive_mask = np.isin(STN_ID_ARR, np.array(positive_selected_ids, dtype=int))
+        sel_idx = np.where(positive_mask)[0]
+        sel_weights = np.array(
+            [selected_weights_lookup.get(int(gid), np.nan) for gid in STN_ID_ARR[sel_idx]],
+            dtype=float
+        )
+
         fig.add_trace(go.Scattergl(
             x=STN_LON[sel_idx],
             y=STN_LAT[sel_idx],
@@ -594,7 +623,7 @@ def build_figure(
         title=f"Grid {int(grid_id)} | {rain_note} | centroids={len(GRID_DF)} | gauges={len(STN_DF)}",
         xaxis_title="Longitude",
         yaxis_title="Latitude",
-        height=820,
+        height=1200,
         margin=dict(l=40, r=20, t=70, b=40),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0.0),
         uirevision="keep",
@@ -602,8 +631,52 @@ def build_figure(
     )
     fig.update_xaxes(range=FULL_XRANGE)
     fig.update_yaxes(range=FULL_YRANGE)
-    fig.update_layout(height=1550)
+
     info = {"selected_ids_count": len(selected_ids), "missing_ids": missing_ids}
+    
+    # draw selected-gauge connection lines above points if you want
+    if show_lines and selected_ids:
+        for d in selected_gauges:
+            sid = d["gauge_id"]
+            w = d.get("weight", np.nan)
+
+            if pd.isna(w) or float(w) <= 0:
+                continue
+
+            hit = np.where(STN_ID_ARR == int(sid))[0]
+            if len(hit) == 0:
+                continue
+
+            j = hit[0]
+            fig.add_trace(go.Scatter(
+                x=[tx, STN_LON[j]],
+                y=[ty, STN_LAT[j]],
+                mode="lines",
+                showlegend=False,
+                line=dict(width=2, color="black"),
+                hoverinfo="skip",
+            ))
+    
+    # catchment boundaries on top of visual layers
+    for tr in catchment_traces:
+        fig.add_trace(tr)
+        
+    fig.add_trace(go.Scatter(
+            x=GRID_LON,
+            y=GRID_LAT,
+            mode="markers",
+            name="centroid-click-layer",
+            marker=dict(
+                symbol="square",
+                size=max(centroid_size + 14, 20),
+                opacity=0.01,
+                color="rgba(0,0,0,0.01)"
+            ),
+            customdata=GRID_ID_ARR,
+            hoverinfo="skip",
+            showlegend=False,
+        ))
+    
     return fig, info
 
 
@@ -667,14 +740,14 @@ app.layout = html.Div(
                 ),
                 html.Hr(),
                 html.Label("Centroid size"),
-                dcc.Slider(id="centroid-size", min=3, max=12, step=1, value=6),
+                dcc.Slider(id="centroid-size", min=3, max=12, step=1, value=10),
                 html.Label("Centroid opacity"),
                 dcc.Slider(id="centroid-opacity", min=0.1, max=1.0, step=0.05, value=0.8),
                 html.Div(style={"height": "10px"}),
                 html.Label("Gauge size"),
-                dcc.Slider(id="gauge-size", min=3, max=12, step=1, value=6),
+                dcc.Slider(id="gauge-size", min=3, max=12, step=1, value=9),
                 html.Label("Gauge opacity"),
-                dcc.Slider(id="gauge-opacity", min=0.05, max=1.0, step=0.05, value=0.45),
+                dcc.Slider(id="gauge-opacity", min=0.05, max=1.0, step=0.05, value=0.65),
                 html.Hr(),
                 html.Button("Reset view to full domain", id="reset-view", n_clicks=0),
                 html.Div(style={"height": "10px"}),
@@ -724,30 +797,17 @@ def update_selected_grid(clickData, dropdown_value, current):
             return current, current
 
         pt = clickData["points"][0]
-
-        # safest method: use pointIndex for centroid/hitbox traces
-        idx = pt.get("pointIndex", None)
-        if idx is not None:
-            try:
-                new_gid = int(GRID_ID_ARR[int(idx)])
-                return new_gid, new_gid
-            except Exception:
-                pass
-
-        # fallback to customdata
         cd = pt.get("customdata", None)
+
         if cd is not None:
             try:
-                if isinstance(cd, (list, tuple, np.ndarray)):
+                if isinstance(cd, (list, tuple, np.ndarray)) and len(cd) >= 2 and cd[1] == "grid":
                     new_gid = int(float(cd[0]))
-                else:
-                    new_gid = int(float(cd))
-                return new_gid, new_gid
+                    return new_gid, new_gid
             except Exception:
                 pass
 
         return current, current
-
     return current, current
 
 

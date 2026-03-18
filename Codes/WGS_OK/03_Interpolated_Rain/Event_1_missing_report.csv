@@ -1,5 +1,5 @@
 event,event_start_local,event_end_local,n_event_hours,n_grids,n_gauges_used,n_gauges_per_grid
-1,2013-05-30 12:00:00,2013-05-31 12:00:00,25,2924,78,4
+1,2013-05-30 12:00:00,2013-05-31 12:00:00,25,4374,91,4
 
 station_id,file_exists,rows_read,n_duplicates_collapsed,n_bad_time_rows_dropped,n_missing_after_reindex,n_filled_as_zero
 16005,True,119226,13,0,14,14
@@ -23,8 +23,12 @@ station_id,file_exists,rows_read,n_duplicates_collapsed,n_bad_time_rows_dropped,
 16028,True,119219,13,0,15,15
 16029,True,110428,12,0,15,15
 16030,True,119221,13,0,15,15
+16031,True,105155,12,0,13,13
 16032,True,105155,12,0,14,14
+16033,True,105156,12,0,14,14
+16034,True,105147,12,0,14,14
 16035,True,119225,13,0,12,12
+16036,True,105154,12,0,13,13
 16037,True,119223,13,0,14,14
 16039,True,119221,13,0,14,14
 16040,True,119221,13,0,12,12
@@ -33,6 +37,7 @@ station_id,file_exists,rows_read,n_duplicates_collapsed,n_bad_time_rows_dropped,
 16044,True,119224,13,0,14,14
 16045,True,119223,13,0,14,14
 16046,True,105153,12,0,14,14
+16047,True,105157,12,0,14,14
 16048,True,119216,13,0,14,14
 16049,True,119217,13,0,13,13
 16050,True,105156,12,0,15,15
@@ -59,6 +64,11 @@ station_id,file_exists,rows_read,n_duplicates_collapsed,n_bad_time_rows_dropped,
 16074,True,119214,13,0,17,17
 16075,True,119212,13,0,15,15
 16076,True,119222,13,0,15,15
+16077,True,119218,13,0,21,21
+16078,True,119219,13,0,17,17
+16079,True,119213,13,0,15,15
+16081,True,119127,13,0,14,14
+16084,True,119219,13,0,14,14
 16085,True,119220,13,0,15,15
 16086,True,119229,13,0,16,16
 16093,True,119228,13,0,15,15
@@ -71,12 +81,15 @@ station_id,file_exists,rows_read,n_duplicates_collapsed,n_bad_time_rows_dropped,
 2710,True,119210,13,0,14,14
 2790,True,117991,13,0,14,14
 2800,True,119212,13,0,12,12
+2900,True,105155,12,0,15,15
 3000,True,105157,12,0,14,14
 5100,True,119215,13,0,14,14
 5110,True,119037,13,0,15,15
 5170,True,119206,13,0,14,14
-5400,True,119218,13,0,14,14
+5200,True,119224,13,0,12,12
 5600,True,119208,13,0,16,16
 5700,True,119229,13,0,13,13
 5800,True,119217,13,0,14,14
 5900,True,119219,13,0,14,14
+7010,True,101547,12,0,15,15
+7020,True,95566,11,0,14,14

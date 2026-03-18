@@ -254,6 +254,7 @@ def run_event(event, start, end):
         dists.append(d)
 
         pairs_info.append((s1, s2, d, c))
+        stations_in_valid_pairs.add(s1)
         stations_in_valid_pairs.add(s2)
     pairs_df = pd.DataFrame(pairs_info,columns=["station1", "station2", "distance_km", "correlation"])
     pairs_df.to_csv(EVENT_TS_DIR/f"{event}_correlation.csv")

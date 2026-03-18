@@ -62,7 +62,6 @@ def main() -> None:
 
     base_dir = Path(args.base_dir)
 
-    s00 = script_path("00_build_wgs_grid_and_neighbors.py", base_dir)
     s01 = script_path("01_event_correlation_analysis.py", base_dir)
     s02 = script_path("02_WGS_Weights_Calculator.py", base_dir)
     s03 = script_path("03_WGS_rainfall_estimator.py", base_dir)

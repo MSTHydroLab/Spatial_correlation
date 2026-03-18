@@ -5,17 +5,18 @@ from pathlib import Path
 import argparse
 import ast
 import itertools
+import json
 
 import numpy as np
 import pandas as pd
 
 from geo_utils import haversine_km, ang_sep_deg
 
-
 BASE_DIR = Path("/mnt/12TB/Sujan/Spatial_correlation/Codes/WGS_OK")
 DEP_DIR = BASE_DIR / "dependent_files"
 OUT_DIR = BASE_DIR / "02_OK_Weights"
-correlation_dir = BASE_DIR / "01_Event_TimeSeries"
+CORRELATION_DIR = BASE_DIR / "01_Event_TimeSeries"
+
 
 def norm_station_id(x):
     s = str(x).strip().strip("'").strip('"')
@@ -26,175 +27,39 @@ def norm_station_id(x):
     except Exception:
         return s
 
+
 def rho_powerexp(d_km, a_km, b):
     return np.exp(-((np.asarray(d_km, dtype=float) / float(a_km)) ** float(b)))
 
 
+def compute_idw_weights(dists_m, power=2.0):
+    d = np.asarray(dists_m, dtype=float)
+    if np.any(d <= 0):
+        w = np.zeros_like(d, dtype=float)
+        w[np.argmin(d)] = 1.0
+        return w
+    inv = 1.0 / np.power(d, power)
+    return inv / np.sum(inv)
 
-def pick4_max_spread(ids, dists, bears):
-    valid = [
-        i for i in range(len(ids))
-        if pd.notna(ids[i]) and pd.notna(dists[i]) and pd.notna(bears[i]) and str(ids[i]).strip() != ""
-    ]
-    if len(valid) < 4:
-        return []
-    if len(valid) == 4:
-        return valid
+def fix_small_negative_weights(weights, tol=0.1):
+    w = np.asarray(weights, dtype=float).copy()
 
-    best = None
-    best_score = (-1.0, np.inf)
-    for combo in itertools.combinations(valid, 4):
-        seps = [ang_sep_deg(bears[i], bears[j]) for i, j in itertools.combinations(combo, 2)]
-        score = (min(seps), sum(float(dists[i]) for i in combo))
-        if (score[0] > best_score[0]) or (score[0] == best_score[0] and score[1] < best_score[1]):
-            best_score = score
-            best = list(combo)
-    return best or []
+    # Identify small negatives
+    small_neg = (w < 0) & (w >= -tol)
 
-def choose_nonnegative_weights_with_fallback(
-    stations_df,
-    target_lat,
-    target_lon,
-    ids_f,
-    dists_f,
-    bears_f,
-    a_km,
-    b,
-    nugget=0.0,
-):
-    """
-    Heuristic:
-    - start from spread-based 4-gauge choice
-    - if any negative weights, drop the most negative station
-      and replace it with the next available candidate
-    - repeat until all nonnegative or no more replacements
-    - if still negative, try 3-gauge combinations from filtered list
-    - return always as 4 slots, padding slot 4 with blank/zero if 3-gauge fallback is used
-    """
+    # If there are any large negatives, do NOT fix here
+    if np.any(w < -tol):
+        return w, False  # not acceptable group
 
-    n_all = len(ids_f)
-    if n_all < 3:
-        return None
+    # Clip small negatives to zero
+    w[small_neg] = 0.0
 
-    # ---------- try 4 gauges first ----------
-    if n_all >= 4:
-        chosen_idx = pick4_max_spread(ids_f, dists_f, bears_f)
+    # Renormalize (only if sum > 0)
+    s = w.sum()
+    if s > 0:
+        w = w / s
 
-        if len(chosen_idx) == 4:
-            tried_sets = set()
-
-            while True:
-                chosen_tuple = tuple(sorted(chosen_idx))
-                if chosen_tuple in tried_sets:
-                    break
-                tried_sets.add(chosen_tuple)
-
-                chosen_ids = [ids_f[i] for i in chosen_idx]
-                chosen_d = [dists_f[i] for i in chosen_idx]
-                chosen_b = [bears_f[i] for i in chosen_idx]
-
-                try:
-                    weights = compute_ok_weights(
-                        stations_df, target_lat, target_lon, chosen_ids, a_km, b, nugget=nugget
-                    )
-                except Exception:
-                    break
-
-                if np.all(weights >= 0):
-                    return {
-                        "ids": chosen_ids,
-                        "dists": chosen_d,
-                        "bears": chosen_b,
-                        "weights": weights,
-                        "n_used": 4,
-                        "all_nonnegative": True,
-                    }
-
-                # drop the most negative station
-                worst_local = int(np.argmin(weights))
-                worst_global = chosen_idx[worst_local]
-
-                # replacement candidates = filtered stations not already chosen
-                remaining = [i for i in range(n_all) if i not in chosen_idx]
-
-                # keep original filtered order, pick the next available one
-                replacement = None
-                for cand in remaining:
-                    replacement = cand
-                    break
-
-                if replacement is None:
-                    break
-
-                # replace worst with next candidate
-                chosen_idx = [replacement if i == worst_global else i for i in chosen_idx]
-
-                # ensure uniqueness
-                if len(set(chosen_idx)) < 4:
-                    break
-
-    # ---------- fallback: try 3 gauges ----------
-    best3 = None
-    best3_score = None
-
-    for combo in itertools.combinations(range(n_all), 3):
-        combo_ids = [ids_f[i] for i in combo]
-        combo_d = [dists_f[i] for i in combo]
-        combo_b = [bears_f[i] for i in combo]
-
-        try:
-            w3 = compute_ok_weights(
-                stations_df, target_lat, target_lon, combo_ids, a_km, b, nugget=nugget
-            )
-        except Exception:
-            continue
-
-        neg_penalty = float(np.sum(np.abs(w3[w3 < 0]))) if np.any(w3 < 0) else 0.0
-        min_w = float(np.min(w3))
-        score = (-neg_penalty, min_w, -float(np.sum(combo_d)))
-
-        if (best3 is None) or (score > best3_score):
-            best3 = (combo_ids, combo_d, combo_b, w3)
-            best3_score = score
-
-            if np.all(w3 >= 0):
-                break
-
-    if best3 is None:
-        return None
-
-    combo_ids, combo_d, combo_b, w3 = best3
-
-    # pad to 4 slots for downstream compatibility
-    # choose a real 4th gauge with zero weight so downstream code still finds a station
-    extra_idx = None
-    for i in range(n_all):
-        if ids_f[i] not in combo_ids:
-            extra_idx = i
-            break
-
-    if extra_idx is not None:
-        extra_id = ids_f[extra_idx]
-        extra_d = dists_f[extra_idx]
-        extra_b = bears_f[extra_idx]
-    else:
-        # fallback: reuse the first chosen gauge with zero weight
-        extra_id = combo_ids[0]
-        extra_d = combo_d[0]
-        extra_b = combo_b[0]
-
-    ids_out = combo_ids + [extra_id]
-    d_out = combo_d + [extra_d]
-    b_out = combo_b + [extra_b]
-    w_out = np.array(list(w3) + [0.0], dtype=float)
-    return {
-        "ids": ids_out,
-        "dists": d_out,
-        "bears": b_out,
-        "weights": w_out,
-        "n_used": 3,
-        "all_nonnegative": bool(np.all(w3 >= 0)),
-    }
+    return w, True
 
 def compute_ok_weights(stations_df, target_lat, target_lon, ids, a_km, b, nugget=0.0):
     st = stations_df.set_index("ID")
@@ -209,7 +74,6 @@ def compute_ok_weights(stations_df, target_lat, target_lon, ids, a_km, b, nugget
         dij_km[i, :] = haversine_km(xs_lat[i], xs_lon[i], xs_lat, xs_lon)
 
     d0_km = haversine_km(target_lat, target_lon, xs_lat, xs_lon)
-
     C = rho_powerexp(dij_km, a_km, b)
     c0 = rho_powerexp(d0_km, a_km, b)
 
@@ -235,21 +99,165 @@ def compute_ok_weights(stations_df, target_lat, target_lon, ids, a_km, b, nugget
 
 def parse_selected_station_ids(raw_value):
     raw = str(raw_value).strip()
-
     if raw.startswith("[") or raw.startswith("("):
         parsed = ast.literal_eval(raw)
         return {norm_station_id(x) for x in parsed}
-
     return {norm_station_id(x) for x in raw.split(",") if norm_station_id(x) != ""}
 
 
+def safe_json_loads(x, default):
+    if pd.isna(x):
+        return default
+    s = str(x).strip()
+    if s == "":
+        return default
+    try:
+        return json.loads(s)
+    except Exception:
+        return default
 
-def run_event(event_number: int, event_meta_dir: Path, neighbor_file: Path, station_file: Path, out_dir: Path, nugget: float):
+
+def group_score(group):
+    bears = [float(x) for x in group["bears"]]
+    dists = [float(x) for x in group["dists"]]
+    weights = np.asarray(group.get("weights", []), dtype=float)
+
+    seps = [
+        ang_sep_deg(bears[i], bears[j])
+        for i, j in itertools.combinations(range(len(bears)), 2)
+    ]
+    min_sep = float(min(seps)) if seps else 360.0
+
+    min_dist = float(np.min(dists)) if dists else np.inf
+    mean_dist = float(np.mean(dists)) if dists else np.inf
+    n_used = int(group["n_used"])
+
+    # True only when every selected gauge has strictly positive weight
+    all_positive_weights = bool(len(weights) == n_used and np.all(weights > 0.0))
+
+    # Prefer:
+    # 1) all-positive groups
+    # 2) more gauges
+    # 3) closer nearest gauge
+    # 4) smaller mean distance
+    # 5) better spread
+    return (all_positive_weights, n_used, -min_dist, -mean_dist, min_sep)
+
+def convert_groups_from_row(row, selected_station_ids, inner_radius_km=5.0, min_within_inner_radius=2):
+    groups = []
+    for raw_col, gtype in [("quadrant_groups", "quadrant"), ("sector3_groups", "sector3")]:
+        raw_groups = safe_json_loads(row.get(raw_col, ""), [])
+        for g in raw_groups:
+            ids = [norm_station_id(x) for x in g.get("ids", [])]
+            dists = [float(x) for x in g.get("dists_m", [])]
+            bears = [float(x) for x in g.get("bears_deg", [])]
+            if not ids or len(ids) != len(dists) or len(ids) != len(bears):
+                continue
+            if any(sid == "" for sid in ids):
+                continue
+            if not all(sid in selected_station_ids for sid in ids):
+                continue
+            inner_count = int(np.sum(np.asarray(dists, dtype=float) <= float(inner_radius_km) * 1000.0))
+            if inner_count < int(min_within_inner_radius):
+                continue
+            groups.append({
+                "group_type": gtype,
+                "ids": ids,
+                "dists": dists,
+                "bears": bears,
+                "n_used": len(ids),
+                "n_within_inner_radius": inner_count,
+            })
+
+    dedup = []
+    seen = set()
+    for g in groups:
+        key = (g["group_type"], tuple(g["ids"]))
+        if key in seen:
+            continue
+        seen.add(key)
+        dedup.append(g)
+    return dedup
+
+
+def choose_best_group_with_fallback(stations_df, target_lat, target_lon, groups, a_km, b, nugget=0.0):
+    if not groups:
+        return None
+
+    positive = []
+
+    for g in groups:
+        try:
+            w = compute_ok_weights(
+                stations_df, target_lat, target_lon, g["ids"], a_km, b, nugget=nugget
+            )
+        except Exception:
+            continue
+
+        had_small_neg = np.any((w < 0) & (w >= -0.1))
+        w_fixed, ok = fix_small_negative_weights(w, tol=0.1)
+
+        if ok:
+            w = w_fixed
+
+            rec = dict(g)
+            rec["weights"] = np.asarray(w, dtype=float)
+            rec["weight_method"] = "ordinary_kriging"
+
+            if np.all(w > 0):
+                rec["remarks"] = f"ok_allpositive_{g['group_type']}"
+            elif had_small_neg:
+                rec["remarks"] = f"ok_corrected_{g['group_type']}"
+            else:
+                rec["remarks"] = f"ok_with_zero_{g['group_type']}"
+
+            positive.append(rec)
+
+    if positive:
+        return max(positive, key=group_score)
+
+    best_geom = max(groups, key=group_score)
+    rec = dict(best_geom)
+    rec["weights"] = compute_idw_weights(best_geom["dists"], power=2.0)
+    rec["weight_method"] = "idw"
+    rec["remarks"] = f"idw_fallback_{best_geom['group_type']}"
+    return rec
+
+
+def pad_to_four(choice, candidate_groups):
+    ids = list(choice["ids"])
+    dists = list(choice["dists"])
+    bears = list(choice["bears"])
+    weights = list(np.asarray(choice["weights"], dtype=float))
+
+    if len(ids) == 4:
+        return ids, dists, bears, np.asarray(weights, dtype=float), 4
+
+    extra = None
+    for g in candidate_groups:
+        for sid, dist, bear in zip(g["ids"], g["dists"], g["bears"]):
+            if sid not in ids:
+                extra = (sid, dist, bear)
+                break
+        if extra is not None:
+            break
+
+    if extra is None:
+        extra = (ids[0], dists[0], bears[0])
+
+    ids.append(extra[0])
+    dists.append(float(extra[1]))
+    bears.append(float(extra[2]))
+    weights.append(0.0)
+    return ids, dists, bears, np.asarray(weights, dtype=float), len(choice["ids"])
+
+
+def run_event(event_number: int, event_meta_dir: Path, neighbor_file: Path, station_file: Path, out_dir: Path, nugget: float, inner_radius_km: float, min_within_inner_radius: int):
     event_file = event_meta_dir / f"Event_{event_number}_Stations_correlation.csv"
     if not event_file.exists():
         raise FileNotFoundError(f"Missing event metadata: {event_file}")
     if not neighbor_file.exists():
-        raise FileNotFoundError(f"Missing neighbor file: {neighbor_file}")
+        raise FileNotFoundError(f"Missing grouped candidate file: {neighbor_file}")
     if not station_file.exists():
         raise FileNotFoundError(f"Missing stations file: {station_file}")
 
@@ -258,16 +266,9 @@ def run_event(event_number: int, event_meta_dir: Path, neighbor_file: Path, stat
     b = float(event_df["corr_b"].iloc[0])
     selected = parse_selected_station_ids(event_df["stations_selected"].iloc[0])
 
-    print("corr_a_km:", a_km)
-    print("corr_b:", b)
-
-    print("Number of selected stations:", len(selected))
-    print("First 20 selected stations:", list(selected)[:20])
-        
     nei = pd.read_csv(neighbor_file)
     stations = pd.read_csv(station_file)
     stations["ID"] = stations["ID"].apply(norm_station_id)
-    
 
     results = []
     for _, row in nei.iterrows():
@@ -275,57 +276,47 @@ def run_event(event_number: int, event_meta_dir: Path, neighbor_file: Path, stat
         target_lat = float(row["Latitude"])
         target_lon = float(row["Longitude"])
 
-        ids = [row.get(f"g{i}", "") for i in range(1, 11)]
-        dists = [row.get(f"d{i}_m", np.nan) for i in range(1, 11)]
-        bears = [row.get(f"b{i}_deg", np.nan) for i in range(1, 11)]
-
-        filtered = []
-        for i in range(len(ids)):
-            sid = norm_station_id(ids[i])
-            if sid == "":
-                continue
-            if sid not in selected:
-                continue
-            filtered.append((i, sid, float(dists[i]), float(bears[i])))
-
-        if len(filtered) < 4:
+        groups = convert_groups_from_row(row, selected_station_ids=selected, inner_radius_km=inner_radius_km, min_within_inner_radius=min_within_inner_radius)
+        if not groups:
             continue
 
-        ids_f = [t[1] for t in filtered]
-        dists_f = [t[2] for t in filtered]
-        bears_f = [t[3] for t in filtered]
-
-        choice = choose_nonnegative_weights_with_fallback(
+        choice = choose_best_group_with_fallback(
             stations_df=stations,
             target_lat=target_lat,
             target_lon=target_lon,
-            ids_f=ids_f,
-            dists_f=dists_f,
-            bears_f=bears_f,
+            groups=groups,
             a_km=a_km,
             b=b,
             nugget=nugget,
         )
-
         if choice is None:
             continue
 
-        chosen_ids = choice["ids"]
-        chosen_d = choice["dists"]
-        chosen_b = choice["bears"]
-        weights = choice["weights"]
+        chosen_ids, chosen_d, chosen_b, weights, n_used = pad_to_four(choice, groups)
 
-        rec = {"id": target_id, "Latitude": target_lat, "Longitude": target_lon}
+        rec = {
+            "id": target_id,
+            "Latitude": target_lat,
+            "Longitude": target_lon,
+            "group_type": choice["group_type"],
+            "candidate_group_count": int(len(groups)),
+            "group_inner_radius_km": float(inner_radius_km),
+            "group_min_within_inner_radius": int(min_within_inner_radius),
+        }
         for k in range(4):
             rec[f"g{k+1}"] = chosen_ids[k]
-            rec[f"d{k+1}_m"] = chosen_d[k]
-            rec[f"b{k+1}_deg"] = chosen_b[k]
+            rec[f"d{k+1}_m"] = float(chosen_d[k])
+            rec[f"b{k+1}_deg"] = float(chosen_b[k])
             rec[f"w{k+1}"] = float(weights[k])
 
         rec["sum_w"] = float(np.sum(weights))
-        rec["n_gauges_used"] = int(choice["n_used"])
-        rec["all_nonnegative"] = bool(choice["all_nonnegative"])
+        rec["n_gauges_used"] = int(n_used)
+        rec["all_nonnegative"] = bool(np.all(weights >= 0))
+        rec["n_negative_weights"] = int(np.sum(weights < 0))
+        rec["neg_penalty"] = float(np.sum(np.abs(weights[weights < 0])))
         rec["min_weight"] = float(np.min(weights))
+        rec["remarks"] = str(choice["remarks"])
+        rec["weight_method"] = str(choice["weight_method"])
         results.append(rec)
 
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -335,13 +326,15 @@ def run_event(event_number: int, event_meta_dir: Path, neighbor_file: Path, stat
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Compute ordinary kriging weights on a WGS84 grid.")
+    parser = argparse.ArgumentParser(description="Compute ordinary kriging weights using grouped station candidates.")
     parser.add_argument("--event", type=int, required=True)
-    parser.add_argument("--event-meta-dir", default=str(correlation_dir))
-    parser.add_argument("--neighbor-file", default=str(DEP_DIR / "grid_nearest10_spread_wgs84.csv"))
+    parser.add_argument("--event-meta-dir", default=str(CORRELATION_DIR))
+    parser.add_argument("--neighbor-file", default=str(DEP_DIR / "grid_grouped_candidates_wgs84.csv"))
     parser.add_argument("--station-file", default=str(DEP_DIR / "Stations_df.csv"))
     parser.add_argument("--out-dir", default=str(OUT_DIR))
     parser.add_argument("--nugget", type=float, default=0.0)
+    parser.add_argument("--inner-radius-km", type=float, default=7.0)
+    parser.add_argument("--min-within-inner-radius", type=int, default=2)
     args = parser.parse_args()
 
     run_event(
@@ -351,4 +344,6 @@ if __name__ == "__main__":
         station_file=Path(args.station_file),
         out_dir=Path(args.out_dir),
         nugget=args.nugget,
+        inner_radius_km=args.inner_radius_km,
+        min_within_inner_radius=args.min_within_inner_radius,
     )
