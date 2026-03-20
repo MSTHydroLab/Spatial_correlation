@@ -16,7 +16,7 @@ LOCAL_TZ = "America/Chicago"
 BASE_DIR = Path("/mnt/12TB/Sujan/Spatial_correlation/Codes/WGS_OK")
 DEFAULT_GRID_CSV = BASE_DIR / "dependent_files" / "grid_centers_wgs84.csv"
 DEFAULT_EVENT_META_DIR = BASE_DIR / "01_Event_TimeSeries"
-DEFAULT_OUT_DIR = Path("/mnt/12TB/Sujan/Radar_products/Event_TimeSeries")
+DEFAULT_OUT_DIR = Path("/mnt/12TB/Sujan/Spatial_correlation/Codes/WGS_OK/Radar_Event_TimeSeries")
 DEFAULT_COMPOSITE_DIRS = [
     Path("/mnt/12TB/Sujan/Radar_products/Composite_2"),
     Path("/mnt/12TB/Sujan/Radar_products/Composite_3"),
@@ -357,12 +357,12 @@ def build_event_cube(
         "accumulation_sec_header": int(first_header.accumulation_sec) if first_header.accumulation_sec is not None else np.nan,
         "source_dir": str(comp_dir),
     }])
-
+    comp_num = comp_dir.name.split("_")[-1]
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_rain = out_dir / f"Event_{event_number}_grid_rain_hourly_mm.csv"
-    out_meta = out_dir / f"Event_{event_number}_grid_metadata.csv"
-    out_missing = out_dir / f"Event_{event_number}_missing_hours.csv"
-    out_summary = out_dir / f"Event_{event_number}_summary.csv"
+    out_rain = out_dir / f"Event_{event_number}_grid_rain_hourly_mm_composite{comp_num}.csv"
+    out_meta = out_dir / f"Event_{event_number}_grid_metadata_composite{comp_num}.csv"
+    out_missing = out_dir / f"Event_{event_number}_missing_hours_composite{comp_num}.csv"
+    out_summary = out_dir / f"Event_{event_number}_summary_composite{comp_num}.csv"
 
     out_df.to_csv(out_rain, index=False)
     meta_df.to_csv(out_meta, index=False)
@@ -390,10 +390,10 @@ def parse_args() -> argparse.Namespace:
         default=[str(p) for p in DEFAULT_COMPOSITE_DIRS],
         help="One or more composite folders. Separate outputs are written for each folder.",
     )
-    ap.add_argument("--start-lat", type=float, default=38.7334919)
-    ap.add_argument("--end-lat", type=float, default=39.0376829)
+    ap.add_argument("--start-lat", type=float, default=38.7293249)
+    ap.add_argument("--end-lat", type=float, default=39.0418499)
     ap.add_argument("--start-lon", type=float, default=-94.899835)
-    ap.add_argument("--end-lon", type=float, default=-94.5956440)
+    ap.add_argument("--end-lon", type=float, default=-94.591477)
     return ap.parse_args()
 
 

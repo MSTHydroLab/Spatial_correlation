@@ -132,16 +132,18 @@ def group_score(group):
     mean_dist = float(np.mean(dists)) if dists else np.inf
     n_used = int(group["n_used"])
 
-    # True only when every selected gauge has strictly positive weight
     all_positive_weights = bool(len(weights) == n_used and np.all(weights > 0.0))
 
-    # Prefer:
-    # 1) all-positive groups
-    # 2) more gauges
-    # 3) closer nearest gauge
-    # 4) smaller mean distance
-    # 5) better spread
-    return (all_positive_weights, n_used, -min_dist, -mean_dist, min_sep)
+    has_forced_near = bool(group.get("has_forced_near", False))
+
+    # Priority:
+    # 1) group includes the forced nearest gauge (if applicable)
+    # 2) all-positive weights
+    # 3) more gauges
+    # 4) closer nearest gauge
+    # 5) smaller mean distance
+    # 6) better spread
+    return (has_forced_near, all_positive_weights, n_used, -min_dist, -mean_dist, min_sep)
 
 def convert_groups_from_row(row, selected_station_ids, inner_radius_km=5.0, min_within_inner_radius=2):
     groups = []
@@ -180,9 +182,42 @@ def convert_groups_from_row(row, selected_station_ids, inner_radius_km=5.0, min_
     return dedup
 
 
-def choose_best_group_with_fallback(stations_df, target_lat, target_lon, groups, a_km, b, nugget=0.0):
+def choose_best_group_with_fallback(
+    stations_df,
+    target_lat,
+    target_lon,
+    groups,
+    a_km,
+    b,
+    nugget=0.0,
+):
     if not groups:
         return None
+
+    CLOSE_RADIUS_M = 2000.0
+
+    # ---------------------------------------------------------
+    # Find the nearest gauge within 1.5 km, if any
+    # ---------------------------------------------------------
+    forced_near_sid = None
+    forced_near_dist = None
+
+    for g in groups:
+        for sid, dist in zip(g["ids"], g["dists"]):
+            dist = float(dist)
+            if dist <= CLOSE_RADIUS_M:
+                if (forced_near_dist is None) or (dist < forced_near_dist):
+                    forced_near_dist = dist
+                    forced_near_sid = sid
+
+    # ---------------------------------------------------------
+    # Keep only groups containing that nearest close gauge
+    # if such a gauge exists
+    # ---------------------------------------------------------
+    if forced_near_sid is not None:
+        filtered_groups = [g for g in groups if forced_near_sid in g["ids"]]
+        if filtered_groups:
+            groups = filtered_groups
 
     positive = []
 
@@ -203,6 +238,9 @@ def choose_best_group_with_fallback(stations_df, target_lat, target_lon, groups,
             rec = dict(g)
             rec["weights"] = np.asarray(w, dtype=float)
             rec["weight_method"] = "ordinary_kriging"
+            rec["has_forced_near"] = bool(forced_near_sid is not None and forced_near_sid in g["ids"])
+            rec["forced_near_sid"] = forced_near_sid if forced_near_sid is not None else ""
+            rec["forced_near_dist_m"] = float(forced_near_dist) if forced_near_dist is not None else np.nan
 
             if np.all(w > 0):
                 rec["remarks"] = f"ok_allpositive_{g['group_type']}"
@@ -216,12 +254,24 @@ def choose_best_group_with_fallback(stations_df, target_lat, target_lon, groups,
     if positive:
         return max(positive, key=group_score)
 
-    best_geom = max(groups, key=group_score)
-    rec = dict(best_geom)
-    rec["weights"] = compute_idw_weights(best_geom["dists"], power=2.0)
-    rec["weight_method"] = "idw"
-    rec["remarks"] = f"idw_fallback_{best_geom['group_type']}"
-    return rec
+    # ---------------------------------------------------------
+    # Fallback to IDW on the best geometry group
+    # ---------------------------------------------------------
+    idw_groups = []
+    for g in groups:
+        rec = dict(g)
+        rec["weights"] = compute_idw_weights(g["dists"], power=2.0)
+        rec["weight_method"] = "idw"
+        rec["remarks"] = f"idw_fallback_{g['group_type']}"
+        rec["has_forced_near"] = bool(forced_near_sid is not None and forced_near_sid in g["ids"])
+        rec["forced_near_sid"] = forced_near_sid if forced_near_sid is not None else ""
+        rec["forced_near_dist_m"] = float(forced_near_dist) if forced_near_dist is not None else np.nan
+        idw_groups.append(rec)
+
+    if idw_groups:
+        return max(idw_groups, key=group_score)
+
+    return None
 
 
 def pad_to_four(choice, candidate_groups):
@@ -302,7 +352,11 @@ def run_event(event_number: int, event_meta_dir: Path, neighbor_file: Path, stat
             "candidate_group_count": int(len(groups)),
             "group_inner_radius_km": float(inner_radius_km),
             "group_min_within_inner_radius": int(min_within_inner_radius),
+            "has_forced_near": bool(choice.get("has_forced_near", False)),
+            "forced_near_sid": str(choice.get("forced_near_sid", "")),
+            "forced_near_dist_m": float(choice.get("forced_near_dist_m", np.nan)),
         }
+
         for k in range(4):
             rec[f"g{k+1}"] = chosen_ids[k]
             rec[f"d{k+1}_m"] = float(chosen_d[k])
@@ -315,8 +369,9 @@ def run_event(event_number: int, event_meta_dir: Path, neighbor_file: Path, stat
         rec["n_negative_weights"] = int(np.sum(weights < 0))
         rec["neg_penalty"] = float(np.sum(np.abs(weights[weights < 0])))
         rec["min_weight"] = float(np.min(weights))
-        rec["remarks"] = str(choice["remarks"])
-        rec["weight_method"] = str(choice["weight_method"])
+        rec["remarks"] = str(choice.get("remarks", ""))
+        rec["weight_method"] = str(choice.get("weight_method", ""))
+
         results.append(rec)
 
     out_dir.mkdir(parents=True, exist_ok=True)

@@ -327,10 +327,10 @@ def main():
     ap.add_argument("--grid-csv", default="", help="Optional prebuilt WGS84 grid CSV with columns id, Latitude, Longitude.")
     ap.add_argument("--grid-out-csv", default=str(dep_dir / "grid_centers_wgs84.csv"))
     ap.add_argument("--neighbors-out-csv", default=str(dep_dir / "grid_grouped_candidates_wgs84.csv"))
-    ap.add_argument("--start-lat", type=float, default=38.7334919)
-    ap.add_argument("--end-lat", type=float, default=39.0376829)
-    ap.add_argument("--start-lon", type=float, default=-94.899835)
-    ap.add_argument("--end-lon", type=float, default=-94.5956440)
+    ap.add_argument("--start-lat", type=float, default=38.7314084)  #grid center start
+    ap.add_argument("--end-lat", type=float, default=39.0397664) #grid center end
+    ap.add_argument("--start-lon", type=float, default=-94.9019185) #grid center start
+    ap.add_argument("--end-lon", type=float, default=-94.5935605) #grid center end
     ap.add_argument("--delta", type=float, default=0.004167)
     ap.add_argument("--lon-major", action="store_true", help="Assign ids with longitude as outer loop. Default is latitude-major.")
     ap.add_argument("--radius-km", type=float, default=10.0, help="All stations within this radius are considered.")
