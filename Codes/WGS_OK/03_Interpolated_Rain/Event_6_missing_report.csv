@@ -1,5 +1,5 @@
 event,event_start_local,event_end_local,n_event_hours,n_grids,n_gauges_used,n_gauges_per_grid
-6,2017-07-23 00:00:00,2017-07-23 12:00:00,13,4705,96,4
+6,2017-07-23 00:00:00,2017-07-23 12:00:00,13,4973,98,4
 
 station_id,file_exists,rows_read,n_duplicates_collapsed,n_bad_time_rows_dropped,n_missing_after_reindex,n_filled_as_zero
 16005,True,119226,13,0,9,9
@@ -70,6 +70,7 @@ station_id,file_exists,rows_read,n_duplicates_collapsed,n_bad_time_rows_dropped,
 16074,True,119214,13,0,8,8
 16075,True,119212,13,0,7,7
 16076,True,119222,13,0,8,8
+16077,True,119218,13,0,7,7
 16078,True,119219,13,0,9,9
 16079,True,119213,13,0,8,8
 16084,True,119219,13,0,9,9
@@ -93,6 +94,7 @@ station_id,file_exists,rows_read,n_duplicates_collapsed,n_bad_time_rows_dropped,
 5100,True,119215,13,0,10,10
 5110,True,119037,13,0,8,8
 5170,True,119206,13,0,8,8
+5400,True,119218,13,0,10,10
 5700,True,119229,13,0,10,10
 5800,True,119217,13,0,10,10
 5900,True,119219,13,0,9,9

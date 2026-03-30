@@ -41,7 +41,7 @@ def compute_idw_weights(dists_m, power=2.0):
     inv = 1.0 / np.power(d, power)
     return inv / np.sum(inv)
 
-def fix_small_negative_weights(weights, tol=0.1):
+def fix_small_negative_weights(weights, tol):
     w = np.asarray(weights, dtype=float).copy()
 
     # Identify small negatives
@@ -130,20 +130,34 @@ def group_score(group):
 
     min_dist = float(np.min(dists)) if dists else np.inf
     mean_dist = float(np.mean(dists)) if dists else np.inf
+    sum_dist = float(np.sum(dists)) if dists else np.inf
     n_used = int(group["n_used"])
-
-    all_positive_weights = bool(len(weights) == n_used and np.all(weights > 0.0))
 
     has_forced_near = bool(group.get("has_forced_near", False))
 
-    # Priority:
-    # 1) group includes the forced nearest gauge (if applicable)
-    # 2) all-positive weights
-    # 3) more gauges
+    # distinguish fully positive from corrected-small-negative
+    status = str(group.get("remarks", ""))
+    clean_positive = status.startswith("ok_allpositive")
+    corrected_small_negative = status.startswith("ok_corrected")
+
+    # New priority:
+    # 1) forced near gauge included
+    # 2) more gauges
+    # 3) closer total distance
     # 4) closer nearest gauge
     # 5) smaller mean distance
     # 6) better spread
-    return (has_forced_near, all_positive_weights, n_used, -min_dist, -mean_dist, min_sep)
+    # 7) prefer clean positive over corrected only as a weak tie-breaker
+    return (
+        has_forced_near,
+        clean_positive,
+        corrected_small_negative,
+        -sum_dist,
+        -min_dist,
+        -mean_dist,
+        n_used,
+        min_sep,
+    )
 
 def convert_groups_from_row(row, selected_station_ids, inner_radius_km=5.0, min_within_inner_radius=2):
     groups = []
@@ -194,10 +208,8 @@ def choose_best_group_with_fallback(
     if not groups:
         return None
 
-    CLOSE_RADIUS_M = 2000.0
-
     # ---------------------------------------------------------
-    # Find the nearest gauge within 1.5 km, if any
+    # Always force the absolute nearest gauge among all candidate groups
     # ---------------------------------------------------------
     forced_near_sid = None
     forced_near_dist = None
@@ -205,21 +217,18 @@ def choose_best_group_with_fallback(
     for g in groups:
         for sid, dist in zip(g["ids"], g["dists"]):
             dist = float(dist)
-            if dist <= CLOSE_RADIUS_M:
-                if (forced_near_dist is None) or (dist < forced_near_dist):
-                    forced_near_dist = dist
-                    forced_near_sid = sid
+            if (forced_near_dist is None) or (dist < forced_near_dist):
+                forced_near_dist = dist
+                forced_near_sid = sid
 
-    # ---------------------------------------------------------
-    # Keep only groups containing that nearest close gauge
-    # if such a gauge exists
-    # ---------------------------------------------------------
+    # Keep only groups containing the absolute nearest gauge
     if forced_near_sid is not None:
         filtered_groups = [g for g in groups if forced_near_sid in g["ids"]]
         if filtered_groups:
             groups = filtered_groups
 
     positive = []
+    
 
     for g in groups:
         try:
@@ -228,9 +237,17 @@ def choose_best_group_with_fallback(
             )
         except Exception:
             continue
+        neg_mask = w < 0
+        neg_sum = float(np.sum(np.abs(w[neg_mask])))
+        
+        NEG_SUM_TOL = 0.1
+        if np.any(w < -0.1):
+            continue
 
+        if neg_sum > 0.1:
+            continue
         had_small_neg = np.any((w < 0) & (w >= -0.1))
-        w_fixed, ok = fix_small_negative_weights(w, tol=0.1)
+        w_fixed, ok = fix_small_negative_weights(w, tol=0.09)
 
         if ok:
             w = w_fixed
@@ -325,7 +342,24 @@ def run_event(event_number: int, event_meta_dir: Path, neighbor_file: Path, stat
         target_id = str(row["id"])
         target_lat = float(row["Latitude"])
         target_lon = float(row["Longitude"])
+        
+        raw_candidate_ids = safe_json_loads(row.get("candidate_ids", ""), [])
+        raw_candidate_dists = safe_json_loads(row.get("candidate_dists_m", ""), [])
 
+        raw_pairs = []
+        for sid, dist in zip(raw_candidate_ids, raw_candidate_dists):
+            sid = norm_station_id(sid)
+            try:
+                dist = float(dist)
+            except Exception:
+                continue
+            if sid != "":
+                raw_pairs.append((sid, dist))
+
+        if raw_pairs:
+            true_nearest_sid, true_nearest_dist = min(raw_pairs, key=lambda x: x[1])
+        else:
+            true_nearest_sid, true_nearest_dist = "", np.nan
         groups = convert_groups_from_row(row, selected_station_ids=selected, inner_radius_km=inner_radius_km, min_within_inner_radius=min_within_inner_radius)
         if not groups:
             continue
@@ -341,9 +375,14 @@ def run_event(event_number: int, event_meta_dir: Path, neighbor_file: Path, stat
         )
         if choice is None:
             continue
-
+        print(
+            f"centroid={target_id} "
+            f"true_nearest={true_nearest_sid} ({true_nearest_dist:.2f} m), "
+            f"forced_near={choice.get('forced_near_sid', '')} ({choice.get('forced_near_dist_m', np.nan):.2f} m), "
+            f"chosen={choice['ids']}"
+        )
         chosen_ids, chosen_d, chosen_b, weights, n_used = pad_to_four(choice, groups)
-
+        print(target_id, "and", chosen_ids)
         rec = {
             "id": target_id,
             "Latitude": target_lat,

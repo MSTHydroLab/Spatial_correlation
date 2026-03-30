@@ -638,22 +638,33 @@ def build_figure(
     if show_lines and selected_ids:
         for d in selected_gauges:
             sid = d["gauge_id"]
-            w = d.get("weight", np.nan)
-
-            if pd.isna(w) or float(w) <= 0:
-                continue
+            w = d["weight"]   # <-- important
 
             hit = np.where(STN_ID_ARR == int(sid))[0]
             if len(hit) == 0:
                 continue
-
             j = hit[0]
+
+            # choose style based on weight
+            if w == 0 or np.isclose(w, 0):
+                dash_style = "dot"
+                line_width = 2
+                line_color = "gray"
+            else:
+                dash_style = "solid"
+                line_width = 2
+                line_color = "black"
+
             fig.add_trace(go.Scatter(
                 x=[tx, STN_LON[j]],
                 y=[ty, STN_LAT[j]],
                 mode="lines",
                 showlegend=False,
-                line=dict(width=2, color="black"),
+                line=dict(
+                    width=line_width,
+                    color=line_color,
+                    dash=dash_style
+                ),
                 hoverinfo="skip",
             ))
     

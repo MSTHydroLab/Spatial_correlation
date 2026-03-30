@@ -50,17 +50,24 @@ def max_circular_gap_deg(bearings_deg):
     return float(np.max(gaps))
 
 
-def group_passes_geometry(bearings_deg, n_group, min_sep_3=45.0, min_sep_4=45.0, max_gap_3=200.0, max_gap_4=180.0):
+def group_passes_geometry(
+    bearings_deg,
+    n_group,
+    min_sep_3,
+    min_sep_4,
+    max_gap_3,
+    max_gap_4,
+):
     bearings_deg = [float(x) for x in bearings_deg]
 
     min_sep = min_pairwise_sep_deg(bearings_deg)
-    max_gap = max_circular_gap_deg(bearings_deg)
+    max_pair_sep = max_pairwise_sep_deg(bearings_deg)
 
     if n_group == 3:
-        return (min_sep >= float(min_sep_3)) and (max_gap <= float(max_gap_3))
+        return (min_sep >= float(min_sep_3)) and (max_pair_sep <= float(max_gap_3))
 
     if n_group == 4:
-        return (min_sep >= float(min_sep_4)) and (max_gap <= float(max_gap_4))
+        return (min_sep >= float(min_sep_4)) and (max_pair_sep <= float(max_gap_4))
 
     return False
 
@@ -124,6 +131,16 @@ def build_full_groups_from_sectors(
     groups.sort(key=lambda g: (g["sum_dist_m"], -g["min_ang_sep_deg"]))
     return groups[:max_groups]
 
+def max_pairwise_sep_deg(bearings_deg):
+    vals = list(bearings_deg)
+    if len(vals) < 2:
+        return 0.0
+    seps = []
+    for i, j in itertools.combinations(range(len(vals)), 2):
+        a = abs(vals[i] - vals[j]) % 360.0
+        seps.append(min(a, 360.0 - a))
+    return float(max(seps))
+
 def select_candidates_and_groups_for_target(
     stn_lat: np.ndarray,
     stn_lon: np.ndarray,
@@ -160,10 +177,10 @@ def select_candidates_and_groups_for_target(
         candidate_ids=candidate_ids,
         candidate_dists_m=candidate_dists_m,
         candidate_bears_deg=candidate_bears_deg,
-        min_sep_3=45.0,
-        min_sep_4=45.0,
-        max_gap_3=180.0,
-        max_gap_4=180.0,
+        min_sep_3=60,
+        min_sep_4=45,
+        max_gap_3=180,
+        max_gap_4=160,
         max_groups_per_type=max_groups_per_type,
         inner_radius_km=inner_radius_km,
         min_within_inner_radius=min_within_inner_radius,
@@ -191,7 +208,6 @@ def build_neighbor_table(
     stn_lat = stations_df["Latitude"].to_numpy(dtype=float)
     stn_lon = stations_df["Longitude"].to_numpy(dtype=float)
     stn_id = stations_df["ID"].astype(str).to_numpy()
-
     rows = []
     for _, row in grid_df.iterrows():
         candidates, preview, quadrant_groups, sector3_groups = select_candidates_and_groups_for_target(
@@ -207,7 +223,6 @@ def build_neighbor_table(
             inner_radius_km=inner_radius_km,
             min_within_inner_radius=min_within_inner_radius,
         )
-
         rec = {
             "id": str(row["id"]),
             "Latitude": float(row["Latitude"]),
@@ -224,7 +239,7 @@ def build_neighbor_table(
             "group_inner_radius_km": float(inner_radius_km),
             "group_min_within_inner_radius": int(min_within_inner_radius),
         }
-
+        print(rec["id"])
         rows.append(rec)
 
     return pd.DataFrame(rows)
@@ -234,9 +249,9 @@ def build_angle_based_groups(
     candidate_dists_m,
     candidate_bears_deg,
     min_sep_3=60.0,
-    min_sep_4=45.0,
-    max_gap_3=240.0,
-    max_gap_4=180.0,
+    min_sep_4=50.0,
+    max_gap_3=210.0,
+    max_gap_4=1700.0,
     max_groups_per_type=50,
     inner_radius_km=None,
     min_within_inner_radius=0,
