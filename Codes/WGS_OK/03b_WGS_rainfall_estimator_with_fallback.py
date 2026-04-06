@@ -186,17 +186,33 @@ def collect_all_gauges(options_df: pd.DataFrame) -> list[str]:
 
 
 def compute_candidate_value(row: pd.Series, rain_row: pd.Series) -> float:
-    val = 0.0
+    vals = []
+    weights = []
+
     for k in range(1, N_GAUGES + 1):
         gid = str(row[f"g{k}"]).strip()
         if gid == "":
             continue
+
         w = float(row[f"w{k}"])
         r = rain_row.get(gid, np.nan)
+
         if pd.isna(r):
-            r = 0.0
-        val += float(r) * w
-    return float(val)
+            continue
+
+        vals.append(float(r))
+        weights.append(w)
+
+    if len(vals) == 0:
+        return 0.0  # or np.nan if you prefer strict handling
+
+    vals = np.array(vals, dtype=float)
+    weights = np.array(weights, dtype=float)
+
+    # renormalize weights
+    weights = weights / np.sum(weights)
+
+    return float(np.sum(vals * weights))
 
 
 # -----------------------------
@@ -256,10 +272,7 @@ def run_screen(primary_grid: pd.DataFrame,
                rain_df: pd.DataFrame,
                neighbors: dict[str, list[str]],
                min_valid_in_window: int,
-               neighbor_stat: str,
                abs_threshold_mm: float,
-               rel_factor: float,
-               mad_factor: float,
                require_improvement: bool) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 
     adjusted = primary_grid.copy()
@@ -292,14 +305,22 @@ def run_screen(primary_grid: pd.DataFrame,
             if neighbor_vals.size == 0:
                 continue
 
-            stat_value = compute_stat(neighbor_vals, neighbor_stat)
-            scale_value = compute_scale(neighbor_vals, stat_value)
-            allowed = max(abs_threshold_mm, rel_factor * max(stat_value, 0.1), mad_factor * scale_value)
+            local_min = float(np.min(neighbor_vals))
+            local_max = float(np.max(neighbor_vals))
+            lower_bound = local_min - float(abs_threshold_mm)
+            upper_bound = local_max + float(abs_threshold_mm)
 
             current_val = float(base_snapshot.loc[cid])
-            current_diff = abs(current_val - stat_value)
-            if current_diff <= allowed:
+
+            # only screen if outside the allowed neighbor range
+            if lower_bound <= current_val <= upper_bound:
                 continue
+
+            # how far outside the allowed range is the current value?
+            if current_val < lower_bound:
+                current_excess = lower_bound - current_val
+            else:
+                current_excess = current_val - upper_bound
 
             candidates = option_lookup.get(cid, [])
             if len(candidates) <= 1:
@@ -307,44 +328,64 @@ def run_screen(primary_grid: pd.DataFrame,
 
             best_val = current_val
             best_row = None
-            best_diff = current_diff
+            best_excess = current_excess
             best_passed = False
 
             for opt_row in candidates[1:]:
                 cand_val = compute_candidate_value(opt_row, rain_row)
-                cand_diff = abs(cand_val - stat_value)
-                cand_passed = cand_diff <= allowed
+
+                if lower_bound <= cand_val <= upper_bound:
+                    cand_excess = 0.0
+                    cand_passed = True
+                elif cand_val < lower_bound:
+                    cand_excess = lower_bound - cand_val
+                    cand_passed = False
+                else:
+                    cand_excess = cand_val - upper_bound
+                    cand_passed = False
 
                 if cand_passed:
-                    if (not require_improvement) or (cand_diff < best_diff):
+                    if (not require_improvement) or (cand_excess < best_excess):
                         best_val = cand_val
                         best_row = opt_row
-                        best_diff = cand_diff
+                        best_excess = cand_excess
                         best_passed = True
                         break
-                elif (not best_passed) and (cand_diff < best_diff):
+                elif (not best_passed) and (cand_excess < best_excess):
                     best_val = cand_val
                     best_row = opt_row
-                    best_diff = cand_diff
+                    best_excess = cand_excess
 
-            if best_row is not None and ((not require_improvement) or (best_diff < current_diff)):
+            if best_row is not None and ((not require_improvement) or (best_excess < current_excess)):
                 adjusted.iloc[t_idx, adjusted.columns.get_loc(cid)] = best_val
                 switch_rows.append({
                     "time_local": str(ts),
                     "id": cid,
                     "primary_value_mm": current_val,
                     "replacement_value_mm": best_val,
-                    "neighbor_stat_value_mm": stat_value,
-                    "neighbor_scale_mad_mm": scale_value,
-                    "allowed_diff_mm": allowed,
-                    "primary_abs_diff_mm": current_diff,
-                    "replacement_abs_diff_mm": best_diff,
+                    "neighbor_min_mm": local_min,
+                    "neighbor_max_mm": local_max,
+                    "allowed_lower_mm": lower_bound,
+                    "allowed_upper_mm": upper_bound,
+                    "threshold_mm": float(abs_threshold_mm),
+                    "primary_excess_mm": current_excess,
+                    "replacement_excess_mm": best_excess,
                     "replacement_passed_rule": bool(best_passed),
                     "chosen_option_rank": int(best_row["option_rank"]),
                     "chosen_ranking_rule": str(best_row["ranking_rule"]),
                     "chosen_weight_method": str(best_row["weight_method"]),
                     "chosen_remarks": str(best_row["remarks"]),
                 })
+                adjusted.iloc[t_idx, adjusted.columns.get_loc(cid)] = best_val
+
+                print(
+                    f"[SWITCH] time={ts} | cell={cid} | "
+                    f"{current_val:.2f} → {best_val:.2f} mm | "
+                    f"range=[{local_min:.2f}, {local_max:.2f}] | "
+                    f"allowed=[{lower_bound:.2f}, {upper_bound:.2f}] | "
+                    f"primary_excess={current_excess:.2f} | new_excess={best_excess:.2f} | "
+                    f"option={int(best_row['option_rank'])} ({best_row['weight_method']})"
+                )
 
     switch_df = pd.DataFrame(switch_rows)
     if switch_df.empty:
@@ -361,7 +402,6 @@ def run_screen(primary_grid: pd.DataFrame,
 
     return adjusted, switch_df, summary_df
 
-
 # -----------------------------
 # Main
 # -----------------------------
@@ -375,10 +415,8 @@ def main():
     parser.add_argument("--out-dir", default=str(OUT_DIR))
     parser.add_argument("--max-options", type=int, default=5)
     parser.add_argument("--min-valid-in-window", type=int, default=8)
-    parser.add_argument("--neighbor-stat", choices=["mean", "median"], default="median")
-    parser.add_argument("--abs-threshold-mm", type=float, default=5.0)
-    parser.add_argument("--rel-factor", type=float, default=2.0)
-    parser.add_argument("--mad-factor", type=float, default=3.0)
+    parser.add_argument("--abs-threshold-mm", type=float, default=5.0,
+                    help="Allowed amount outside the local neighbor min/max range before trying fallback weights.")
     parser.add_argument("--no-require-improvement", action="store_true")
     args = parser.parse_args()
 
@@ -421,10 +459,7 @@ def main():
         rain_df=R_filled,
         neighbors=neighbors,
         min_valid_in_window=args.min_valid_in_window,
-        neighbor_stat=args.neighbor_stat,
         abs_threshold_mm=args.abs_threshold_mm,
-        rel_factor=args.rel_factor,
-        mad_factor=args.mad_factor,
         require_improvement=not args.no_require_improvement,
     )
 
@@ -452,11 +487,9 @@ def main():
         "n_grids": primary_grid.shape[1],
         "n_gauges_loaded_for_fallbacks": len(gauges),
         "n_option_rows": len(option_weights),
-        "neighbor_stat": args.neighbor_stat,
+        "screen_rule": "outside_neighbor_minmax_by_threshold",
         "min_valid_in_window": int(args.min_valid_in_window),
         "abs_threshold_mm": float(args.abs_threshold_mm),
-        "rel_factor": float(args.rel_factor),
-        "mad_factor": float(args.mad_factor),
         "n_switches_total": int(len(switch_df)),
     }])
 

@@ -1,2 +1,0 @@
-station,gap_start_local,gap_end_local,gap_start_utc,gap_end_utc,gap_days,nominal_step_seconds
-1010.hourly_mm,2023-12-30 11:00:00-0600,2025-01-01 00:00:00-0600,2023-12-30 17:00:00+0000,2025-01-01 06:00:00+0000,367.5416666666667,3600

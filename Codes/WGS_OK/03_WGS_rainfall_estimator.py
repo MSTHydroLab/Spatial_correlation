@@ -119,20 +119,58 @@ def compute_grid_rain(weights_df: pd.DataFrame, rain_df: pd.DataFrame) -> pd.Dat
     station_cols = {str(c): i for i, c in enumerate(rain_df.columns)}
     Rmat = rain_df.to_numpy(dtype=float)
     grid_ids = weights_df["id"].to_numpy()
-    out = np.zeros((rain_df.shape[0], len(grid_ids)), dtype=float)
 
-    for k in range(1, N_GAUGES + 1):
-        gids = weights_df[f"g{k}"].to_numpy()
-        w = weights_df[f"w{k}"].to_numpy(dtype=float)
-        idx = np.array([station_cols.get(g, -1) if g != "" else -1 for g in gids], dtype=int)
-        term = np.zeros_like(out)
-        valid = idx >= 0
-        if np.any(valid):
-            term[:, valid] = Rmat[:, idx[valid]]
-        out += term * w[None, :]
+    n_time = Rmat.shape[0]
+    n_grid = len(grid_ids)
 
-    result = pd.DataFrame(out, index=rain_df.index, columns=grid_ids)
-    return result
+    out = np.zeros((n_time, n_grid), dtype=float)
+
+    for j in range(n_grid):
+        vals = np.zeros(n_time, dtype=float)
+        weights = []
+        data = []
+
+        for k in range(1, N_GAUGES + 1):
+            gid = weights_df.iloc[j][f"g{k}"]
+            w = weights_df.iloc[j][f"w{k}"]
+
+            if gid == "" or gid not in station_cols:
+                continue
+
+            col_idx = station_cols[gid]
+            r = Rmat[:, col_idx]
+
+            weights.append(w)
+            data.append(r)
+
+        if len(data) == 0:
+            continue
+
+        weights = np.array(weights, dtype=float)
+        data = np.array(data)  # shape: (n_gauges, n_time)
+
+        # --- key change ---
+        for t in range(n_time):
+            r_t = data[:, t]
+            w_t = weights.copy()
+
+            valid = ~np.isnan(r_t)
+
+            if np.sum(valid) == 0:
+                vals[t] = 0.0
+                continue
+
+            r_valid = r_t[valid]
+            w_valid = w_t[valid]
+
+            # renormalize weights
+            w_valid = w_valid / np.sum(w_valid)
+
+            vals[t] = np.sum(r_valid * w_valid)
+
+        out[:, j] = vals
+
+    return pd.DataFrame(out, index=rain_df.index, columns=grid_ids)
 
 
 

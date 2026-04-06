@@ -154,8 +154,8 @@ def group_score(group):
         corrected_small_negative,
         -sum_dist,
         -min_dist,
-        -mean_dist,
         n_used,
+        -mean_dist,
         min_sep,
     )
 
