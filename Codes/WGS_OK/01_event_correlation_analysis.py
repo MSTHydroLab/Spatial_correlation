@@ -1,46 +1,36 @@
-#!/usr/bin/env python3
 from pathlib import Path
-import argparse
-import re
-
-import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+import numpy as np
+from itertools import combinations
 from scipy.optimize import curve_fit
 from pyproj import Transformer
-
-
-# ============================================================
-# Paths from the Python workflow
-# ============================================================
+import argparse
+import matplotlib.pyplot as plt
+import re
+import math
 
 BASE_DIR = Path("/mnt/12TB/Sujan/Spatial_correlation/Codes/WGS_OK")
 DEPENDENT = BASE_DIR / "dependent_files"
 STATION_META = DEPENDENT / "Stations_df.csv"
 
-RAIN_DIR = Path(
-    "/mnt/12TB/Sujan/Spatial_correlation/Codes/Compiled_rain/"
-    "compiled_rawstyle_hourly_mm/per_station_hourly/"
-)
+RAIN_DIR = Path("/mnt/12TB/Sujan/Spatial_correlation/Codes/Compiled_rain/compiled_rawstyle_hourly_mm/per_station_hourly/")
 
-# Use Python-side directories, but keep MATLAB-like filenames
-PARAM_DIR = BASE_DIR / "Parameters"
-PARAM_DIR.mkdir(parents=True, exist_ok=True)
+EVENT_TS_DIR = BASE_DIR / "01_Event_TimeSeries"
+EVENT_TS_DIR.mkdir(parents=True, exist_ok=True)
+
+LOCAL_TZ = "America/Chicago"
 
 PLOT_DIR = BASE_DIR / "01_Correlation_Plots"
 PLOT_DIR.mkdir(parents=True, exist_ok=True)
 
-LOCAL_TZ = "America/Chicago"
+# ------------------------------------------------------------
+# QC settings
+# ------------------------------------------------------------
+POSITIVE_COUNT_PERCENTILE = 25.0   # event-wise percentile of positive-rain hours
+MIN_POSITIVE_COUNT_FLOOR = 1       # optional hard floor
+MAX_MISSING_FRACTION = 0.7         # reject if >50% of event hours are missing
+MIN_PAIR_OVERLAP = 3               # minimum overlap after pairwise dropna
 
-
-# ============================================================
-# MATLAB-style parameters
-# ============================================================
-
-FRACTION_NODATA = 0.5
-NGTHRESH = 8
-
-# MATLAB script has 10 events
 EVENT_WINDOWS = {
     1: ("2013-05-30 12:00:00", "2013-05-31 12:00:00"),
     2: ("2014-08-06 12:00:00", "2014-08-07 12:00:00"),
@@ -51,19 +41,92 @@ EVENT_WINDOWS = {
     7: ("2017-07-26 17:00:00", "2017-07-27 12:00:00"),
     8: ("2017-08-21 12:00:00", "2017-08-22 12:00:00"),
     9: ("2018-07-17 21:00:00", "2018-07-18 16:00:00"),
-    10: ("2019-06-23 01:00:00", "2019-06-23 20:00:00"),
     11: ("2019-08-25 11:00:00", "2019-08-26 17:00:00"),
+    10: ("2019-06-23 01:00:00", "2019-06-23 20:00:00"),
     12: ("2020-05-28 01:00:00", "2020-05-29 00:00:00"),
     13: ("2020-07-03 19:00:00", "2020-07-04 03:00:00"),
     14: ("2021-08-12 21:00:00", "2021-08-13 15:00:00"),
     15: ("2022-03-30 01:00:00", "2022-03-30 11:00:00"),
 }
 
+# ------------------------------------------------------------
+# Utilities
+# ------------------------------------------------------------
+def save_correlation_plot(event, dists, corrs, a_km, b, n_stations_used=None, required_positive_count=None):
+    if len(dists) == 0 or len(corrs) == 0:
+        print(f"No correlation plot saved for event {event}, no valid data.")
+        return
 
-# ============================================================
-# Helpers
-# ============================================================
+    xfit = np.linspace(0, max(dists) * 1.05, 400)
+    yfit = corr_model(xfit, a_km, b)
 
+    plt.figure(figsize=(8, 6))
+    plt.scatter(dists, corrs, s=5, alpha=0.6, label="Station pairs")
+    plt.plot(
+        xfit,
+        yfit,
+        linewidth=2,
+        color="red",
+        label=f"Fit: a={a_km:.2f} km, b={b:.2f}"
+    )
+
+    title = f"Event {event}: correlation decay"
+    if n_stations_used is not None:
+        title += f"\nStations used: {n_stations_used}"
+    if required_positive_count is not None:
+        title += f" | Required rain hours > 0: {required_positive_count}"
+    plt.title(title)
+
+    plt.xlabel("Distance between stations (km)")
+    plt.ylabel("Correlation")
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+
+    plot_path = PLOT_DIR / f"Event_{event}_correlation_fit.png"
+    plt.savefig(plot_path, dpi=300, bbox_inches="tight")
+    plt.close()
+
+    print("Correlation plot saved:", plot_path)
+
+def save_positive_hours_plot(event, positive_counts_by_station, required_positive_count=None):
+    if len(positive_counts_by_station) == 0:
+        print(f"No positive-hours plot saved for event {event}, no station counts available.")
+        return
+
+    s = pd.Series(positive_counts_by_station, dtype=float).sort_values()
+
+    q1 = float(s.quantile(0.25))
+    q2 = float(s.quantile(0.50))
+    q3 = float(s.quantile(0.75))
+
+    plt.figure(figsize=(9, 5))
+    x = np.arange(1, len(s) + 1)
+
+    plt.plot(x, s.values, marker="o", linewidth=1, markersize=3, label="Stations")
+    plt.axhline(q1, linestyle="--", linewidth=1, label=f"Q1 = {q1:.1f}")
+    plt.axhline(q2, linestyle="--", linewidth=1, label=f"Median = {q2:.1f}")
+    plt.axhline(q3, linestyle="--", linewidth=1, label=f"Q3 = {q3:.1f}")
+
+    if required_positive_count is not None:
+        plt.axhline(
+            required_positive_count,
+            linestyle="-",
+            linewidth=2,
+            label=f"Required threshold = {required_positive_count}"
+        )
+
+    plt.xlabel("Usable stations (sorted)")
+    plt.ylabel("Hours with rainfall > 0 mm")
+    plt.title(f"Event {event}: positive-rain-hour distribution across usable stations")
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+
+    out_path = PLOT_DIR / f"Event_{event}_positive_hours_distribution.png"
+    plt.savefig(out_path, dpi=300, bbox_inches="tight")
+    plt.close()
+
+    print("Positive-hours distribution plot saved:", out_path)
+    
 def norm_station_id(x):
     s = str(x).strip()
     try:
@@ -73,14 +136,13 @@ def norm_station_id(x):
 
 
 def parse_local_series_time(col):
-    # Same approach you used in Python:
-    # parse with UTC awareness, then convert to local timezone
     t = pd.to_datetime(col, errors="coerce", utc=True)
     return t.dt.tz_convert(LOCAL_TZ)
 
 
 def build_rain_file_map(rain_dir: Path):
     file_map = {}
+
     for f in rain_dir.glob("*.csv"):
         stem = f.stem.strip()
         candidates = {stem}
@@ -101,6 +163,9 @@ def build_rain_file_map(rain_dir: Path):
     return file_map
 
 
+# ------------------------------------------------------------
+# Coordinate conversion
+# ------------------------------------------------------------
 transformer = Transformer.from_crs("EPSG:4326", "EPSG:26915", always_xy=True)
 
 
@@ -108,38 +173,38 @@ def latlon_to_utm(lon, lat):
     return transformer.transform(lon, lat)
 
 
+# ------------------------------------------------------------
+# Correlation model
+# ------------------------------------------------------------
 def corr_model(d, a, b):
     return np.exp(-((d / a) ** b))
 
 
-def get_event_window_local(event):
-    if event not in EVENT_WINDOWS:
-        raise ValueError(f"Event {event} not defined in MATLAB-style event list.")
-    start_str, end_str = EVENT_WINDOWS[event]
-    start = pd.Timestamp(start_str).tz_localize(LOCAL_TZ)
-    end = pd.Timestamp(end_str).tz_localize(LOCAL_TZ)
-    return start, end
+# ------------------------------------------------------------
+# Distance calculation
+# ------------------------------------------------------------
+def pairwise_distances(coords):
+    dist = {}
+    for (s1, (x1, y1)), (s2, (x2, y2)) in combinations(coords.items(), 2):
+        d = np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2) / 1000.0
+        dist[(s1, s2)] = d
+        dist[(s2, s1)] = d
+    return dist
 
 
-def load_station_event_series_as_matlab_style(station_id, start, end, event_idx, rain_file_map):
-    """
-    Returns a numpy array of event rainfall values aligned to the full event index.
-    Missing/unavailable values are filled with -99, matching MATLAB nodata logic.
-    """
-    sid = norm_station_id(station_id)
+# ------------------------------------------------------------
+# Load rainfall series
+# ------------------------------------------------------------
+def load_station_series(station, start, end, rain_file_map, event_idx=None):
+    sid = norm_station_id(station)
     f = rain_file_map.get(sid, None)
-
-    # If file missing, return full -99
     if f is None:
-        return np.full(len(event_idx), -99.0, dtype=float)
+        return None
 
-    try:
-        df = pd.read_csv(f)
-    except Exception:
-        return np.full(len(event_idx), -99.0, dtype=float)
+    df = pd.read_csv(f)
 
     if "time_local" not in df.columns or "rain_mm" not in df.columns:
-        return np.full(len(event_idx), -99.0, dtype=float)
+        return None
 
     df["time_local"] = parse_local_series_time(df["time_local"])
     df["rain_mm"] = pd.to_numeric(df["rain_mm"], errors="coerce")
@@ -147,254 +212,352 @@ def load_station_event_series_as_matlab_style(station_id, start, end, event_idx,
     df = df.dropna(subset=["time_local"])
     df = df[(df["time_local"] >= start) & (df["time_local"] <= end)]
 
-    # If no rows in event window, return full -99
     if len(df) == 0:
-        return np.full(len(event_idx), -99.0, dtype=float)
+        return None
 
     s = df.set_index("time_local")["rain_mm"]
 
-    # Collapse duplicate timestamps as in your Python workflow
+    # collapse duplicate timestamps if any
     s = s.groupby(level=0).mean().sort_index()
 
-    # Reindex to full event timeline, then fill missing with -99
-    s = s.reindex(event_idx)
-    s = s.fillna(-99.0)
+    # reindex to full event timeline if provided
+    if event_idx is not None:
+        s = s.reindex(event_idx)
 
-    return s.to_numpy(dtype=float)
+    # if everything is missing after reindex, treat as unusable
+    if s.notna().sum() < 2:
+        return None
 
-
-def apply_matlab_bad_gauge_mask(event_year, G_event):
-    """
-    Replicates the intended MATLAB bad-gauge masking by column position.
-    MATLAB used 1-based indices:
-      2016: [48, 144]
-      2017: [24]
-
-    This only matches exactly if STATION_META row order matches MATLAB matrix/Gauge_latlon order.
-    """
-    if event_year == 2016:
-        badgauge_1based = [48, 144]
-    elif event_year == 2017:
-        badgauge_1based = [24]
-    else:
-        badgauge_1based = []
-
-    for idx1 in badgauge_1based:
-        idx0 = idx1 - 1
-        if 0 <= idx0 < G_event.shape[1]:
-            G_event[:, idx0] = -99.0
-
-    return G_event
+    print(f"Using file {f.name} for station {sid}")
+    return s
 
 
-def matlab_pair_correlation(G1, G2):
-    """
-    Replicates MATLAB QC sequence:
+def get_event_window_local(event):
+    if event not in EVENT_WINDOWS:
+        raise ValueError(f"Event {event} not defined")
 
-    1) require at least NGTHRESH values > 0 for each station
-    2) if nodata count in G1 > 50%, reject
-       else remove G1 nodata positions from both series
-    3) if nodata count in shortened G2 > 50%, reject
-       else remove G2 nodata positions from both series
-    4) compute correlation on remaining values
-
-    Returns:
-        valid_pair (bool), corr_value (float or -99)
-    """
-    ok1 = np.where(G1 > 0)[0]
-    ok2 = np.where(G2 > 0)[0]
-
-    if len(ok1) < NGTHRESH or len(ok2) < NGTHRESH:
-        return False, -99.0
-
-    noG1 = np.where(G1 == -99)[0]
-    if len(noG1) > FRACTION_NODATA * len(G1):
-        return False, -99.0
-    else:
-        G1 = np.delete(G1, noG1)
-        G2 = np.delete(G2, noG1)
-
-    noG2 = np.where(G2 == -99)[0]
-    if len(noG2) > FRACTION_NODATA * len(G2):
-        return False, -99.0
-    else:
-        G2 = np.delete(G2, noG2)
-        G1 = np.delete(G1, noG2)
-
-    # MATLAB then directly does corr(G1,G2)
-    # In Python, if too short or constant, corrcoef gives nan.
-    # We keep that behavior as closely as possible.
-    if len(G1) == 0 or len(G2) == 0:
-        return True, np.nan
-
-    if len(G1) == 1 or len(G2) == 1:
-        return True, np.nan
-
-    try:
-        c = np.corrcoef(G1, G2)[0, 1]
-    except Exception:
-        c = np.nan
-
-    return True, c
+    start_str, end_str = EVENT_WINDOWS[event]
+    start = pd.Timestamp(start_str).tz_localize(LOCAL_TZ)
+    end = pd.Timestamp(end_str).tz_localize(LOCAL_TZ)
+    return start, end
 
 
-def run_event(event):
-    start, end = get_event_window_local(event)
-    year = start.year
-
-    print("=" * 80)
-    print(f"Running MATLAB-style event {event}")
-    print(f"Local start: {start}")
-    print(f"Local end  : {end}")
-    print("=" * 80)
-
-    stations = pd.read_csv(STATION_META).copy()
-    stations["ID_norm"] = stations["ID"].apply(norm_station_id)
-
-    ng = len(stations)
-    event_idx = pd.date_range(start=start, end=end, freq="1h")
-    rain_file_map = build_rain_file_map(RAIN_DIR)
-
-    # Build MATLAB-like event matrix G_event: [time, station]
-    G_cols = []
-    for _, r in stations.iterrows():
-        sid = r["ID_norm"]
-        arr = load_station_event_series_as_matlab_style(
-            sid, start, end, event_idx, rain_file_map
-        )
-        G_cols.append(arr)
-
-    G_event = np.column_stack(G_cols)
-
-    # Apply MATLAB bad-gauge masking by event year
-    G_event = apply_matlab_bad_gauge_mask(year, G_event)
-
-    # Coordinates / distances
-    xs = []
-    ys = []
-    for _, r in stations.iterrows():
-        x, y = latlon_to_utm(r["Longitude"], r["Latitude"])
-        xs.append(x)
-        ys.append(y)
-    xs = np.array(xs, dtype=float)
-    ys = np.array(ys, dtype=float)
-
-    # MATLAB-style matrices
-    scorr = np.full((ng, ng), -99.0, dtype=float)
-    sdist = np.zeros((ng, ng), dtype=float)
-
-    for i in range(ng):
-        for j in range(i + 1, ng):
-            G1 = G_event[:, i].copy()
-            G2 = G_event[:, j].copy()
-
-            valid_pair, c = matlab_pair_correlation(G1, G2)
-            if not valid_pair:
-                sdist[i, j] = -99.0
-                scorr[i, j] = -99.0
-                continue
-
-            dx = xs[i] - xs[j]
-            dy = ys[i] - ys[j]
-            dist_km = np.sqrt(dx * dx + dy * dy) / 1000.0
-
-            sdist[i, j] = dist_km
-            scorr[i, j] = c
-
-    # MATLAB equivalent:
-    # i=find(scorr~=-99);
-    # scorr2=scorr(i);
-    # sdist2=sdist(i);
-    valid_idx = np.where(scorr != -99.0)
-    scorr2 = scorr[valid_idx]
-    sdist2 = sdist[valid_idx]
-
-    # Save MATLAB-style sample correlation table
-    table = np.column_stack([sdist2, scorr2])
-    samplecorr_path = PARAM_DIR / f"SampleCorr_E{event}.out"
-    np.savetxt(samplecorr_path, table, fmt="%.10f")
-    print(f"Saved: {samplecorr_path}")
-
-    # MATLAB-style fitting
-    x0 = np.array([30.0, 1.0], dtype=float)
-
-    # MATLAB can fail here if scorr2 contains nan or is empty.
-    # To keep the workflow usable, we skip failed events instead of crashing.
-    try:
-        finite = np.isfinite(sdist2) & np.isfinite(scorr2)
-        sdist_fit = sdist2[finite]
-        scorr_fit = scorr2[finite]
-
-        if len(sdist_fit) == 0 or len(scorr_fit) == 0:
-            raise ValueError("No finite pairs remain for fitting.")
-
-        popt, _ = curve_fit(
-            corr_model,
-            sdist_fit,
-            scorr_fit,
-            p0=x0,
-            maxfev=10000
-        )
-        a_km, b = popt
-
-    except Exception as e:
-        print(f"Skipping fit/plot for event {event}: {e}")
+# ------------------------------------------------------------
+# Save event time series
+# ------------------------------------------------------------
+def save_event_station_timeseries(event, series_dict, full_event_index=None, out_name_suffix="all_used_station_timeseries"):
+    if len(series_dict) == 0:
+        print(f"No event rainfall time series saved for event {event}, no usable stations.")
         return
 
-    # Plot MATLAB-style
-    plt.figure(figsize=(8, 6))
-    plt.plot(sdist2, scorr2, ".", label="Station pairs")
-    plt.grid(True)
-    plt.xlabel("Distance (km)")
-    plt.ylabel("Correlation")
-    plt.title(f"Event {event}")
+    event_df = pd.concat(series_dict, axis=1)
+    event_df.columns = [str(c) for c in event_df.columns]
 
-    dx = np.arange(0, 81, 1, dtype=float)
-    ecorr = np.exp(-((dx / a_km) ** b))
-    plt.plot(dx, ecorr, "r-", label=f"Fit: a={a_km:.3f}, b={b:.3f}")
-    plt.legend()
+    if full_event_index is not None:
+        event_df = event_df.reindex(full_event_index)
 
-    plot_path = PLOT_DIR / f"Event_{event}_correlation_fit_matlab_style.png"
-    plt.savefig(plot_path, dpi=300, bbox_inches="tight")
-    plt.close()
-    print(f"Saved: {plot_path}")
+    event_df = event_df.sort_index().reset_index()
+    event_df = event_df.rename(columns={event_df.columns[0]: "time_local"})
 
-    # Save MATLAB-style parameters
-    para_path = PARAM_DIR / f"Para_E{event}.out"
-    np.savetxt(para_path, np.array([a_km, b]), fmt="%.10f")
-    print(f"Saved: {para_path}")
-    print(f"a_km={a_km:.6f}, b={b:.6f}")
+    out_ts = EVENT_TS_DIR / f"Event_{event}_{out_name_suffix}.csv"
+    event_df.to_csv(out_ts, index=False)
+
+    print("Event rainfall time series saved:", out_ts)
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="MATLAB-style sample correlation and exponential fit using Python directories."
+# ------------------------------------------------------------
+# Main event correlation calculation
+# ------------------------------------------------------------
+def run_event(
+    event,
+    start,
+    end,
+    positive_count_percentile=POSITIVE_COUNT_PERCENTILE,
+    min_positive_count_floor=MIN_POSITIVE_COUNT_FLOOR,
+    max_missing_fraction=MAX_MISSING_FRACTION,
+    min_pair_overlap=MIN_PAIR_OVERLAP,
+):
+    stations = pd.read_csv(STATION_META)
+    stations["ID_norm"] = stations["ID"].apply(norm_station_id)
+
+    rain_file_map = build_rain_file_map(RAIN_DIR)
+
+    print(f"Event {event}")
+    print(f"Start: {start}, End: {end}")
+    print(f"Rain files found: {len(rain_file_map)}")
+
+    event_idx = pd.date_range(start=start, end=end, freq="1h")
+    full_event_index = pd.date_range(start, end, freq="1h")
+
+    coords = {}
+    for _, r in stations.iterrows():
+        sid = r["ID_norm"]
+        x, y = latlon_to_utm(r["Longitude"], r["Latitude"])
+        coords[sid] = (x, y)
+
+    distances = pairwise_distances(coords)
+
+    series = {}
+    missing_files = 0
+    no_window_data = 0
+
+    for sid in stations["ID_norm"]:
+        s = load_station_series(sid, start, end, rain_file_map, event_idx=event_idx)
+
+        if s is None:
+            if sid not in rain_file_map:
+                missing_files += 1
+            else:
+                no_window_data += 1
+            continue
+
+        series[sid] = s
+
+    save_event_station_timeseries(
+        event,
+        series,
+        full_event_index=full_event_index,
+        out_name_suffix="all_usable_station_timeseries"
     )
-    parser.add_argument(
-        "--event",
-        type=int,
-        nargs="+",
-        required=True,
-        help="One or more MATLAB-style event numbers (1-10)"
+
+    station_ids = list(series.keys())
+    corrs = []
+    dists = []
+    stations_in_valid_pairs = set()
+    pairs_info = []
+
+    # ------------------------------------------------------------
+    # Event-wise required positive-rain-hour threshold
+    # based on percentile of usable stations
+    # ------------------------------------------------------------
+    positive_counts_by_station = {
+        sid: int((series[sid] > 0).sum())
+        for sid in station_ids
+    }
+
+    positive_counts = np.array(
+        list(positive_counts_by_station.values()),
+        dtype=float
     )
+
+    if len(positive_counts) == 0:
+        print(f"Event {event}: no usable station series found. Skipping.")
+        return False
+
+    required_positive_count = int(
+        max(
+            int(min_positive_count_floor),
+            math.ceil(np.percentile(positive_counts, float(positive_count_percentile)))
+        )
+    )
+
+    print(
+        f"Event {event}: required positive-rain hours = {required_positive_count} "
+        f"(from {positive_count_percentile}th percentile of usable stations)"
+    )
+    
+    save_positive_hours_plot(
+        event=event,
+        positive_counts_by_station=positive_counts_by_station,
+        required_positive_count=required_positive_count,
+    )
+    reject_poscount = 0
+    reject_missing = 0
+    reject_overlap = 0
+    reject_constant = 0
+    reject_nan_corr = 0
+
+    for s1, s2 in combinations(station_ids, 2):
+        s1_full = series[s1].reindex(event_idx)
+        s2_full = series[s2].reindex(event_idx)
+
+        # ------------------------------------------------------------
+        # QC 1: event-wise required minimum positive-rain hours
+        # ------------------------------------------------------------
+        pos_count_1 = int((s1_full > 0).sum())
+        pos_count_2 = int((s2_full > 0).sum())
+
+        if pos_count_1 < required_positive_count:
+            reject_poscount += 1
+            continue
+        if pos_count_2 < required_positive_count:
+            reject_poscount += 1
+            continue
+
+        # ------------------------------------------------------------
+        # QC 2: maximum missing-data fraction per station
+        # ------------------------------------------------------------
+        miss_frac_1 = float(s1_full.isna().sum()) / float(len(event_idx))
+        miss_frac_2 = float(s2_full.isna().sum()) / float(len(event_idx))
+
+        if miss_frac_1 > float(max_missing_fraction):
+            reject_missing += 1
+            continue
+        if miss_frac_2 > float(max_missing_fraction):
+            reject_missing += 1
+            continue
+
+        # ------------------------------------------------------------
+        # QC 3: pair-level overlap on usable data
+        # MATLAB-style pairwise valid timestamps
+        # ------------------------------------------------------------
+        pair = pd.concat([s1_full, s2_full], axis=1)
+        pair.columns = ["s1", "s2"]
+        pair = pair.dropna()
+
+        if len(pair) < int(min_pair_overlap):
+            reject_overlap += 1
+            continue
+
+        if pair["s1"].nunique() <= 1:
+            reject_constant += 1
+            continue
+        if pair["s2"].nunique() <= 1:
+            reject_constant += 1
+            continue
+
+        c = pair["s1"].corr(pair["s2"])
+        if pd.isna(c):
+            reject_nan_corr += 1
+            continue
+
+        d = distances[(s1, s2)]
+
+        corrs.append(c)
+        dists.append(d)
+
+        stations_in_valid_pairs.add(s1)
+        stations_in_valid_pairs.add(s2)
+
+        pairs_info.append({
+            "station_1": s1,
+            "station_2": s2,
+            "distance_km": d,
+            "correlation": c,
+            "n_overlap": int(len(pair)),
+            "pos_count_1": pos_count_1,
+            "pos_count_2": pos_count_2,
+            "miss_frac_1": miss_frac_1,
+            "miss_frac_2": miss_frac_2,
+            "required_positive_count": required_positive_count,
+        })
+
+    pairs_df = pd.DataFrame(pairs_info)
+    pairs_df.to_csv(EVENT_TS_DIR / f"Event_{event}_pair_correlations.csv", index=False)
+
+    series_valid = {sid: series[sid] for sid in sorted(stations_in_valid_pairs)}
+    save_event_station_timeseries(
+        event,
+        series_valid,
+        full_event_index=full_event_index,
+        out_name_suffix="all_used_station_timeseries"
+    )
+
+    corrs = np.array(corrs, dtype=float)
+    dists = np.array(dists, dtype=float)
+
+    print(f"Total stations in metadata: {len(stations)}")
+    print(f"Stations with usable series: {len(series)}")
+    print(f"Missing station files: {missing_files}")
+    print(f"Files found but no usable rows in event window: {no_window_data}")
+    print(f"Required positive-rain hours for this event: {required_positive_count}")
+    print(f"Number of pair correlations: {len(corrs)}")
+    print(f"Loaded station IDs: {station_ids[:20]}")
+    print(f"Rejected by positive-count QC: {reject_poscount}")
+    print(f"Rejected by missing-fraction QC: {reject_missing}")
+    print(f"Rejected by overlap QC: {reject_overlap}")
+    print(f"Rejected by constant-series QC: {reject_constant}")
+    print(f"Rejected by NaN correlation: {reject_nan_corr}")
+
+    if len(series) < 2:
+        print(f"Event {event}: fewer than 2 stations had usable rainfall series. Skipping.")
+        return False
+
+    if len(corrs) == 0:
+        print(f"Event {event}: no valid overlapping station-pair correlations found. Skipping.")
+        return False
+
+    try:
+        popt, _ = curve_fit(corr_model, dists, corrs, bounds=(0, [500, 5]))
+        a_km, b = popt
+    except Exception as e:
+        print(f"Event {event}: curve_fit failed. Skipping. Error: {e}")
+        return False
+
+    save_correlation_plot(
+        event,
+        dists,
+        corrs,
+        a_km,
+        b,
+        n_stations_used=len(stations_in_valid_pairs),
+        required_positive_count=required_positive_count,
+    )
+
+    result = pd.DataFrame({
+        "event_start": [str(start)],
+        "event_end": [str(end)],
+        "corr_a_km": [a_km],
+        "corr_b": [b],
+        "stations_selected": [",".join(sorted(stations_in_valid_pairs))],
+        "required_positive_count": [required_positive_count],
+        "positive_count_percentile": [float(positive_count_percentile)],
+        "min_positive_count_floor": [int(min_positive_count_floor)],
+        "max_missing_fraction": [float(max_missing_fraction)],
+        "min_pair_overlap": [int(min_pair_overlap)],
+    })
+    result.to_csv(EVENT_TS_DIR / f"Event_{event}_Stations_correlation.csv", index=False)
+
+    print(f"a_km={a_km:.4f}, b={b:.4f}")
+    return True
+
+
+# ------------------------------------------------------------
+# CLI
+# ------------------------------------------------------------
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--event", type=int, nargs="+", required=True, help="One or more event numbers")
+    parser.add_argument("--positive-count-percentile", type=float, default=POSITIVE_COUNT_PERCENTILE)
+    parser.add_argument("--min-positive-count-floor", type=int, default=MIN_POSITIVE_COUNT_FLOOR)
+    parser.add_argument("--max-missing-fraction", type=float, default=MAX_MISSING_FRACTION)
+    parser.add_argument("--min-pair-overlap", type=int, default=MIN_PAIR_OVERLAP)
     args = parser.parse_args()
 
-    failed = []
+    failed_events = []
+
     for event in args.event:
         try:
-            run_event(event)
+            start, end = get_event_window_local(event)
+
+            print("=" * 80)
+            print(f"Running event {event}")
+            print(f"Local start: {start}")
+            print(f"Local end  : {end}")
+            print("=" * 80)
+
+            ok = run_event(
+                event,
+                start,
+                end,
+                positive_count_percentile=args.positive_count_percentile,
+                min_positive_count_floor=args.min_positive_count_floor,
+                max_missing_fraction=args.max_missing_fraction,
+                min_pair_overlap=args.min_pair_overlap,
+            )
+
+            if not ok:
+                failed_events.append((event, "run_event returned False"))
+
         except Exception as e:
             print("=" * 80)
             print(f"Skipping event {event} due to error:")
             print(str(e))
             print("=" * 80)
-            failed.append((event, str(e)))
+            failed_events.append((event, str(e)))
+            continue
 
-    if failed:
+    if failed_events:
         print("\nSummary of skipped events:")
-        for ev, msg in failed:
+        for ev, msg in failed_events:
             print(f"  Event {ev}: {msg}")
-
-
-if __name__ == "__main__":
-    main()

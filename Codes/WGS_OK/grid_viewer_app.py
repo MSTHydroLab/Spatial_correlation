@@ -21,7 +21,7 @@ WEIGHTS_DIR = BASE_DIR / "02_OK_Weights"
 EVENT_DIR = BASE_DIR / "03_Interpolated_Rain"
 EVENT_TS_DIR = BASE_DIR / "01_Event_TimeSeries"
 
-EVENT_GLOB = "Event_*_grid_rain_hourly_mm.csv"
+EVENT_GLOB = "Event_*_grid_rain_hourly_mm_catchment_only.csv"
 
 CATCHMENT_SHP_PATHS = [
     "/mnt/12TB/Sujan/Spatial_correlation/Codes/dependent_files/6893390/6893390.shp",
@@ -153,13 +153,12 @@ FULL_YRANGE = [float(ymin - pady), float(ymax + pady)]
 
 def discover_events():
     events = []
-    pat = re.compile(r"Event_(\d+)_grid_rain_hourly_mm\.csv$")
+    pat = re.compile(r"Event_(\d+)_grid_rain_hourly_mm_catchment_only\.csv$")
     for p in sorted(EVENT_DIR.glob(EVENT_GLOB)):
         m = pat.search(p.name)
         if m:
             events.append(int(m.group(1)))
     return sorted(set(events))
-
 
 AVAILABLE_EVENTS = discover_events()
 if not AVAILABLE_EVENTS:
@@ -202,14 +201,20 @@ def load_event_weights_map(event_no: int):
                 weight = np.nan
             chosen.append({"gauge_id": gauge_id, "weight": weight})
 
-        weights_map[gid] = chosen
+        weights_map[gid] = {
+            "gauges": chosen,
+            "stage_used": row["stage_used"] if "stage_used" in row.index and pd.notna(row["stage_used"]) else "",
+            "remarks": row["remarks"] if "remarks" in row.index and pd.notna(row["remarks"]) else "",
+            "solver": row["solver"] if "solver" in row.index and pd.notna(row["solver"]) else "",
+            "n_gauges_final": row["n_gauges_final"] if "n_gauges_final" in row.index and pd.notna(row["n_gauges_final"]) else np.nan,
+        }
 
     return weights_map
 
 
 @lru_cache(maxsize=12)
 def load_event_matrix(event_no: int):
-    f = EVENT_DIR / f"Event_{int(event_no)}_grid_rain_hourly_mm.csv"
+    f = EVENT_DIR / f"Event_{int(event_no)}_grid_rain_hourly_mm_catchment_only.csv"
     if not f.exists():
         raise FileNotFoundError(f"Event file not found: {f}")
 
@@ -348,12 +353,14 @@ def build_figure(
     ty = float(row[GRID_LAT_COL])
 
     selected_gauges = []
+    selected_weight_meta = {}
     event_station_ids = set()
 
     if event_no is not None and event_no in AVAILABLE_EVENTS:
         try:
             weights_map = load_event_weights_map(int(event_no))
-            selected_gauges = weights_map.get(int(grid_id), [])
+            selected_weight_meta = weights_map.get(int(grid_id), {})
+            selected_gauges = selected_weight_meta.get("gauges", [])
         except Exception as e:
             print(f"[weights] load failed for event {event_no}: {e}")
 
@@ -400,16 +407,18 @@ def build_figure(
             station_rain = st_rain_mat[time_idx, :]
             ts_label = times[time_idx].strftime("%Y-%m-%d %H:%M")
 
+            valid_centroid_mask = np.isfinite(z)
+
             fig.add_trace(go.Scatter(
-                x=GRID_LON,
-                y=GRID_LAT,
+                x=GRID_LON[valid_centroid_mask],
+                y=GRID_LAT[valid_centroid_mask],
                 mode="markers",
                 name="Rain (centroids)",
                 marker=dict(
                     symbol="square",
                     size=centroid_size,
                     opacity=centroid_opacity,
-                    color=z,
+                    color=z[valid_centroid_mask],
                     colorscale=RAIN_COLORSCALE,
                     cmin=common_vmin,
                     cmax=common_vmax,
@@ -417,9 +426,9 @@ def build_figure(
                     line=dict(width=0),
                 ),
                 customdata=np.column_stack([
-                    GRID_ID_ARR,
-                    np.repeat("grid", len(GRID_ID_ARR)),
-                    z
+                    GRID_ID_ARR[valid_centroid_mask],
+                    np.repeat("grid", int(np.sum(valid_centroid_mask))),
+                    z[valid_centroid_mask]
                 ]),
                 hovertemplate=(
                     "Grid ID: %{customdata[0]}"
@@ -632,7 +641,14 @@ def build_figure(
     fig.update_xaxes(range=FULL_XRANGE)
     fig.update_yaxes(range=FULL_YRANGE)
 
-    info = {"selected_ids_count": len(selected_ids), "missing_ids": missing_ids}
+    info = {
+        "selected_ids_count": len(selected_ids),
+        "missing_ids": missing_ids,
+        "stage_used": selected_weight_meta.get("stage_used", ""),
+        "remarks": selected_weight_meta.get("remarks", ""),
+        "solver": selected_weight_meta.get("solver", ""),
+        "n_gauges_final": selected_weight_meta.get("n_gauges_final", np.nan),
+    }
     
     # draw selected-gauge connection lines above points if you want
     if show_lines and selected_ids:
@@ -745,7 +761,7 @@ app.layout = html.Div(
                 dcc.Dropdown(
                     id="circles",
                     options=[{"label": str(k), "value": int(k)} for k in [5, 6, 7, 8, 9, 10]],
-                    value=[5, 10],
+                    value=[5, 9],
                     multi=True,
                     clearable=False,
                 ),
@@ -927,11 +943,19 @@ def redraw(
     yaxis_scaleratio=1
 )
 
-    status = f"Selected grid: {int(grid_id)}\nWeighted gauges count: {info['selected_ids_count']}\n"
-    if info["missing_ids"]:
-        status += f"Missing weighted gauges in Stations_df: {info['missing_ids']}\n"
-    else:
-        status += "Weighted gauge IDs all found in Stations_df.\n"
+    status = f"Selected grid: {int(grid_id)}\n"
+    status += f"Weighted gauges count: {info['selected_ids_count']}\n"
+
+    if info.get("stage_used", ""):
+        status += f"Stage used: {info['stage_used']}\n"
+    if info.get("remarks", ""):
+        status += f"Remarks: {info['remarks']}\n"
+    if info.get("solver", ""):
+        status += f"Solver/method: {info['solver']}\n"
+    if pd.notna(info.get("n_gauges_final", np.nan)):
+        status += f"Final gauges used: {int(float(info['n_gauges_final']))}\n"
+    if info.get("replacement_history", ""):
+        status += f"Replacement history: {info['replacement_history']}\n"
 
     if event_no is None:
         status += "Event: none\n"

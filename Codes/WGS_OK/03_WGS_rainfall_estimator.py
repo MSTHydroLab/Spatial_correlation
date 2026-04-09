@@ -5,6 +5,8 @@ from pathlib import Path
 import argparse
 import numpy as np
 import pandas as pd
+import geopandas as gpd
+from shapely.geometry import Point
 
 
 BASE_DIR = Path("/mnt/12TB/Sujan/Spatial_correlation/Codes/WGS_OK")
@@ -19,6 +21,12 @@ TIME_UTC_COL = "time_utc"
 RAIN_COL = "rain_mm"
 N_GAUGES = 4
 LOCAL_TZ = "America/Chicago"
+
+CATCHMENT_SHP_PATHS = [
+    "/mnt/12TB/Sujan/Spatial_correlation/Codes/dependent_files/6893390/6893390.shp",
+    "/mnt/12TB/Sujan/Spatial_correlation/Codes/dependent_files/06893080/6893080.shp",
+    "/mnt/12TB/Sujan/Spatial_correlation/Codes/dependent_files/6892513/6892513.shp",
+]
 
 
 def make_window(start_str: str, end_str: str):
@@ -36,14 +44,12 @@ def make_window(start_str: str, end_str: str):
     return start, end, pd.date_range(start, end, freq="1h")
 
 
-
 def load_event_window(event_number: int, event_meta_dir: Path):
     fp = event_meta_dir / f"Event_{event_number}_Stations_correlation.csv"
     meta = pd.read_csv(fp)
     start_str = str(meta["event_start"].dropna().iloc[0]).strip()
     end_str = str(meta["event_end"].dropna().iloc[0]).strip()
     return make_window(start_str, end_str)
-
 
 
 def load_station_series_local(station_id: str, start: pd.Timestamp, end: pd.Timestamp, rain_dir: Path):
@@ -83,7 +89,6 @@ def load_station_series_local(station_id: str, start: pd.Timestamp, end: pd.Time
     return s, stats
 
 
-
 def load_weights(event_number: int, weights_dir: Path):
     fp = weights_dir / f"Event_{event_number}_weights.csv"
     W = pd.read_csv(fp)
@@ -112,7 +117,6 @@ def load_weights(event_number: int, weights_dir: Path):
         W[f"g{k}"] = W[f"g{k}"].apply(clean_gid)
         W[f"w{k}"] = pd.to_numeric(W[f"w{k}"], errors="coerce").fillna(0.0)
     return W
-
 
 
 def compute_grid_rain(weights_df: pd.DataFrame, rain_df: pd.DataFrame) -> pd.DataFrame:
@@ -147,9 +151,8 @@ def compute_grid_rain(weights_df: pd.DataFrame, rain_df: pd.DataFrame) -> pd.Dat
             continue
 
         weights = np.array(weights, dtype=float)
-        data = np.array(data)  # shape: (n_gauges, n_time)
+        data = np.array(data)
 
-        # --- key change ---
         for t in range(n_time):
             r_t = data[:, t]
             w_t = weights.copy()
@@ -163,9 +166,12 @@ def compute_grid_rain(weights_df: pd.DataFrame, rain_df: pd.DataFrame) -> pd.Dat
             r_valid = r_t[valid]
             w_valid = w_t[valid]
 
-            # renormalize weights
-            w_valid = w_valid / np.sum(w_valid)
+            sw = np.sum(w_valid)
+            if sw == 0:
+                vals[t] = 0.0
+                continue
 
+            w_valid = w_valid / sw
             vals[t] = np.sum(r_valid * w_valid)
 
         out[:, j] = vals
@@ -173,24 +179,48 @@ def compute_grid_rain(weights_df: pd.DataFrame, rain_df: pd.DataFrame) -> pd.Dat
     return pd.DataFrame(out, index=rain_df.index, columns=grid_ids)
 
 
+def load_catchment_union(shp_paths: list[str]):
+    geoms = []
+    for p in shp_paths:
+        shp = Path(p)
+        if not shp.exists():
+            continue
+        gdf = gpd.read_file(shp)
+        if gdf.empty:
+            continue
+        if gdf.crs is None:
+            continue
+        gdf = gdf.to_crs("EPSG:4326")
+        geoms.extend(list(gdf.geometry.dropna()))
 
-def main():
-    parser = argparse.ArgumentParser(description="Apply WGS84 kriging weights to station rainfall time series.")
-    parser.add_argument("--event", type=int, required=True)
-    parser.add_argument("--event-meta-dir", default=str(DEP_DIR))
-    parser.add_argument("--weights-dir", default=str(WEIGHTS_DIR))
-    parser.add_argument("--rain-dir", default=str(RAIN_DIR))
-    parser.add_argument("--out-dir", default=str(OUT_DIR))
-    args = parser.parse_args()
+    if len(geoms) == 0:
+        raise FileNotFoundError("No valid catchment geometries could be loaded.")
 
-    event_meta_dir = Path(args.event_meta_dir)
-    weights_dir = Path(args.weights_dir)
-    rain_dir = Path(args.rain_dir)
-    out_dir = Path(args.out_dir)
+    union_geom = gpd.GeoSeries(geoms, crs="EPSG:4326").union_all()
+    return union_geom
+
+
+def filter_weights_to_catchment(weights_df: pd.DataFrame, catchment_geom):
+    geom = gpd.GeoSeries(
+        [Point(lon, lat) for lon, lat in zip(weights_df["Longitude"], weights_df["Latitude"])],
+        crs="EPSG:4326",
+    )
+    mask = geom.buffer(1e-5).intersects(catchment_geom)
+    return weights_df.loc[mask].copy()
+
+
+def run_event(
+    event_number: int,
+    event_meta_dir: Path,
+    weights_dir: Path,
+    rain_dir: Path,
+    out_dir: Path,
+    catchment_geom,
+):
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    start, end, event_idx = load_event_window(args.event, event_meta_dir)
-    W = load_weights(args.event, weights_dir)
+    start, end, event_idx = load_event_window(event_number, event_meta_dir)
+    W = load_weights(event_number, weights_dir)
 
     gcols = [f"g{k}" for k in range(1, N_GAUGES + 1)]
     gauges = pd.unique(pd.concat([W[c] for c in gcols], axis=0))
@@ -209,16 +239,35 @@ def main():
     missing_counts = R.isna().sum(axis=0).astype(int) if not R.empty else pd.Series(dtype=int)
     R_filled = R.fillna(0.0)
 
+    # ------------------------------------------------------------
+    # full-grid output
+    # ------------------------------------------------------------
     grid_rain = compute_grid_rain(W, R_filled)
 
-    out_rain = out_dir / f"Event_{args.event}_grid_rain_hourly_mm.csv"
+    out_rain = out_dir / f"Event_{event_number}_grid_rain_hourly_mm.csv"
     out_df = grid_rain.copy()
     out_df.insert(0, "time_local", out_df.index.astype(str))
     out_df.to_csv(out_rain, index=False)
 
     grid_meta = W[["id", "Latitude", "Longitude"]].drop_duplicates().copy()
-    grid_meta_out = out_dir / f"Event_{args.event}_grid_metadata.csv"
+    grid_meta_out = out_dir / f"Event_{event_number}_grid_metadata.csv"
     grid_meta.to_csv(grid_meta_out, index=False)
+
+    # ------------------------------------------------------------
+    # catchment-only output
+    # ------------------------------------------------------------
+    W_catch = filter_weights_to_catchment(W, catchment_geom)
+
+    grid_rain_catch = compute_grid_rain(W_catch, R_filled)
+
+    out_rain_catch = out_dir / f"Event_{event_number}_grid_rain_hourly_mm_catchment_only.csv"
+    out_df_catch = grid_rain_catch.copy()
+    out_df_catch.insert(0, "time_local", out_df_catch.index.astype(str))
+    out_df_catch.to_csv(out_rain_catch, index=False)
+
+    grid_meta_catch = W_catch[["id", "Latitude", "Longitude"]].drop_duplicates().copy()
+    grid_meta_catch_out = out_dir / f"Event_{event_number}_grid_metadata_catchment_only.csv"
+    grid_meta_catch.to_csv(grid_meta_catch_out, index=False)
 
     stats_df = pd.DataFrame(stats_rows)
     if not stats_df.empty:
@@ -226,16 +275,17 @@ def main():
         stats_df["n_filled_as_zero"] = stats_df["n_missing_after_reindex"]
 
     summary = pd.DataFrame([{
-        "event": args.event,
+        "event": event_number,
         "event_start_local": start.strftime("%Y-%m-%d %H:%M:%S"),
         "event_end_local": end.strftime("%Y-%m-%d %H:%M:%S"),
         "n_event_hours": len(event_idx),
-        "n_grids": len(W),
+        "n_grids_full": len(W),
+        "n_grids_catchment_only": len(W_catch),
         "n_gauges_used": len(gauges),
         "n_gauges_per_grid": N_GAUGES,
     }])
 
-    out_missing = out_dir / f"Event_{args.event}_missing_report.csv"
+    out_missing = out_dir / f"Event_{event_number}_missing_report.csv"
     with open(out_missing, "w", newline="") as f:
         summary.to_csv(f, index=False)
         f.write("\n")
@@ -244,7 +294,58 @@ def main():
 
     print(f"Saved rainfall: {out_rain}")
     print(f"Saved grid metadata: {grid_meta_out}")
+    print(f"Saved catchment-only rainfall: {out_rain_catch}")
+    print(f"Saved catchment-only grid metadata: {grid_meta_catch_out}")
     print(f"Saved missing report: {out_missing}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Apply WGS84 kriging weights to station rainfall time series.")
+    parser.add_argument("--event", type=int, nargs="+", required=True, help="One or more event numbers")
+    parser.add_argument("--event-meta-dir", default=str(DEP_DIR))
+    parser.add_argument("--weights-dir", default=str(WEIGHTS_DIR))
+    parser.add_argument("--rain-dir", default=str(RAIN_DIR))
+    parser.add_argument("--out-dir", default=str(OUT_DIR))
+    parser.add_argument(
+        "--catchment-shps",
+        nargs="*",
+        default=CATCHMENT_SHP_PATHS,
+        help="Catchment shapefiles used to filter centroids that are within or touch the catchment boundary",
+    )
+    args = parser.parse_args()
+
+    event_meta_dir = Path(args.event_meta_dir)
+    weights_dir = Path(args.weights_dir)
+    rain_dir = Path(args.rain_dir)
+    out_dir = Path(args.out_dir)
+
+    catchment_geom = load_catchment_union(args.catchment_shps)
+
+    failed = []
+    for ev in args.event:
+        try:
+            print("=" * 80)
+            print(f"Running event {ev}")
+            print("=" * 80)
+            run_event(
+                event_number=int(ev),
+                event_meta_dir=event_meta_dir,
+                weights_dir=weights_dir,
+                rain_dir=rain_dir,
+                out_dir=out_dir,
+                catchment_geom=catchment_geom,
+            )
+        except Exception as e:
+            print("=" * 80)
+            print(f"Skipping event {ev} due to error:")
+            print(str(e))
+            print("=" * 80)
+            failed.append((int(ev), str(e)))
+
+    if failed:
+        print("\nSummary of skipped events:")
+        for ev, msg in failed:
+            print(f"  Event {ev}: {msg}")
 
 
 if __name__ == "__main__":

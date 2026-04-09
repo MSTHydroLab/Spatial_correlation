@@ -55,20 +55,7 @@ def main() -> None:
 
     # Shared weights options
     ap.add_argument("--nugget", type=float, default=0.0, help="Nugget used in the OK weights stages")
-
-    # 02b options
-    ap.add_argument("--inner-radius-km", type=float, default=7.0, help="Inner radius used by 02b fallback option builder")
-    ap.add_argument("--min-within-inner-radius", type=int, default=2, help="Minimum gauges within inner radius for 02b")
-    ap.add_argument("--max-options", type=int, default=5, help="Maximum fallback weight options per centroid for 02b/03b")
-    ap.add_argument("--negative-tol", type=float, default=0.1, help="Negative-weight tolerance for 02b")
-    ap.add_argument("--no-idw", action="store_true", help="Disable IDW fallback groups in 02b")
-
-    # 03b options (matches the current 03b script in the project)
-    ap.add_argument("--min-valid-in-window", type=int, default=8, help="Minimum valid cells in local screening window for 03b")
-    ap.add_argument("--abs-threshold-mm", type=float, default=4.0, help="Absolute screening threshold for 03b")
-    ap.add_argument("--no-require-improvement", action="store_true", help="Allow 03b replacement even if not strictly improved")
-
-    # Stage skipping
+  # Stage skipping
     ap.add_argument("--skip-correlation", action="store_true")
     ap.add_argument("--skip-weights", action="store_true", help="Skip primary 02 weights")
     ap.add_argument("--skip-weight-options", action="store_true", help="Skip fallback 02b weight options")
@@ -81,9 +68,7 @@ def main() -> None:
     s00 = script_path("00_build_wgs_grid_and_neighbors.py", base_dir)
     s01 = script_path("01_event_correlation_analysis.py", base_dir)
     s02 = script_path("02_WGS_Weights_Calculator.py", base_dir)
-    s02b = script_path("02b_WGS_Weight_Options_Builder.py", base_dir)
     s03 = script_path("03_WGS_rainfall_estimator.py", base_dir)
-    s03b = script_path("03b_WGS_rainfall_estimator_with_fallback.py", base_dir)
 
     py = sys.executable
 
@@ -149,38 +134,9 @@ def main() -> None:
             cmd = [py, str(s02), "--event", str(ev), "--nugget", str(args.nugget)]
             run_cmd(cmd, cwd=base_dir)
 
-        # Step 2b: Fallback weight options
-        if not args.skip_weight_options:
-            cmd = [
-                py, str(s02b),
-                "--event", str(ev),
-                "--nugget", str(args.nugget),
-                "--inner-radius-km", str(args.inner_radius_km),
-                "--min-within-inner-radius", str(args.min_within_inner_radius),
-                "--max-options", str(args.max_options),
-                "--negative-tol", str(args.negative_tolerance if hasattr(args, 'negative_tolerance') else args.negative_tol),
-            ]
-            if args.no_idw:
-                cmd += ["--no-idw"]
-            run_cmd(cmd, cwd=base_dir)
-
         # Step 3: Primary interpolated rainfall
         if not args.skip_rain:
             cmd = [py, str(s03), "--event", str(ev)]
-            run_cmd(cmd, cwd=base_dir)
-
-        # Step 3b: Fallback rainfall screening
-        if not args.skip_fallback_rain:
-            cmd = [
-                py, str(s03b),
-                "--event", str(ev),
-                "--max-options", str(args.max_options),
-                "--min-valid-in-window", str(args.min_valid_in_window),
-                "--abs-threshold-mm", str(args.abs_threshold_mm),
-            ]
-
-            if args.no_require_improvement:
-                cmd += ["--no-require-improvement"]
             run_cmd(cmd, cwd=base_dir)
 
         print(f"\nFinished event {ev}")
