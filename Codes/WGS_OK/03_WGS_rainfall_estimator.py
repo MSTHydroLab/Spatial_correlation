@@ -260,7 +260,7 @@ def run_event(
 
     grid_rain_catch = compute_grid_rain(W_catch, R_filled)
 
-    out_rain_catch = out_dir / f"Event_{event_number}_grid_rain_hourly_mm_catchment_only.csv"
+    out_rain_catch = out_dir / f"Event_{event_number}_grid_rain_hourly_mm.csv"
     out_df_catch = grid_rain_catch.copy()
     out_df_catch.insert(0, "time_local", out_df_catch.index.astype(str))
     out_df_catch.to_csv(out_rain_catch, index=False)

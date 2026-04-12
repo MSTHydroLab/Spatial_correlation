@@ -494,30 +494,88 @@ def refit_negative_weights(stations_df, target_lat, target_lon, ids, a_km, b, nu
 
 def run_stagewise_search(stations_df, target_lat, target_lon, candidates, a_km, b, nugget=0.0):
     """
-    Search order:
-      1) nearest 4 within POOL1 using OK + replacement
-      2) nearest 3 within POOL1 using OK + replacement
-      3) nearest 4 within POOL2 using OK + replacement
-      4) nearest 3 within POOL2 using OK + replacement
-
-    If all OK stages fail, use IDW fallback with:
-      - nearest 4 if available
-      - else nearest 3
-      - else nearest 2
+    Desired order:
+      1) 4 gauges OK within POOL1
+      2) 3 gauges OK within POOL1
+      3) 3 gauges IDW within POOL1 if available
+      4) 4 gauges OK within POOL1+POOL2, forcing nearest 2 from POOL1 if possible, else nearest 1
+      5) 3 gauges OK within POOL1+POOL2, forcing nearest 2 from POOL1 if possible, else nearest 1
+      6) 3 gauges IDW within POOL1+POOL2
+      7) 2 gauges IDW within POOL1+POOL2
     """
     first_pool = filter_candidates_by_radius(candidates, POOL1)
     second_pool = filter_candidates_by_radius(candidates, POOL2)
 
-    stages = [
+    # ------------------------------------------------------------
+    # Step 1: local OK search in POOL1
+    # ------------------------------------------------------------
+    local_ok_stages = [
         ("nearest4_within5km", first_pool, 4),
         ("nearest3_within5km", first_pool, 3),
-        ("nearest4_within7km", second_pool, 4),
-        ("nearest3_within7km", second_pool, 3),
+    ]
+
+    for stage_name, pool, n_select in local_ok_stages:
+        result = iterative_replace_until_positive(
+            stations_df=stations_df,
+            target_lat=target_lat,
+            target_lon=target_lon,
+            pool=pool,
+            n_select=n_select,
+            a_km=a_km,
+            b=b,
+            nugget=nugget,
+        )
+
+        if result is None:
+            continue
+
+        if result["success"]:
+            choice = result["choice"]
+            padded_ids, padded_dists, padded_bears, padded_weights = pad_output(
+                final_ids=choice["ids"],
+                final_weights=result["weights"],
+                original_choice=choice,
+                n_gauges=4,
+            )
+
+            return {
+                "stage_used": stage_name,
+                "choice_used": choice,
+                "final_ids": choice["ids"],
+                "final_weights": np.asarray(result["weights"], dtype=float),
+                "padded_ids": padded_ids,
+                "padded_dists": padded_dists,
+                "padded_bears": padded_bears,
+                "padded_weights": padded_weights,
+                "solver": result["solver"],
+                "solver_history": result["solver_history"],
+                "replacement_history": result["replacement_history"],
+                "n_negative_final": 0,
+                "remarks": f"{stage_name}_success",
+            }
+
+    # ------------------------------------------------------------
+    # Step 2: local 3-gauge IDW within POOL1
+    # ------------------------------------------------------------
+    if len(first_pool) >= 3:
+        choice = build_choice_from_selected(first_pool[:3])
+        return build_idw_case(choice, "nearest3_within5km")
+
+    # ------------------------------------------------------------
+    # Step 3: mixed POOL1 + POOL2 OK search
+    # Force nearest 2 from POOL1 if possible, else nearest 1
+    # ------------------------------------------------------------
+    n_forced = 2 if len(first_pool) >= 2 else (1 if len(first_pool) >= 1 else 0)
+    mixed_pool = make_forced_mixed_pool(first_pool, second_pool, n_forced_from_pool1=n_forced)
+
+    mixed_ok_stages = [
+        ("nearest4_mixedpool", mixed_pool, 4),
+        ("nearest3_mixedpool", mixed_pool, 3),
     ]
 
     last_result = None
 
-    for stage_name, pool, n_select in stages:
+    for stage_name, pool, n_select in mixed_ok_stages:
         result = iterative_replace_until_positive(
             stations_df=stations_df,
             target_lat=target_lat,
@@ -559,33 +617,18 @@ def run_stagewise_search(stations_df, target_lat, target_lon, candidates, a_km, 
                 "remarks": f"{stage_name}_success",
             }
 
-        # ------------------------------------------------------------
-    # Final fallback: prefer local IDW first
-    # Rule:
-    # - if at least 3 gauges exist within POOL1, use nearest 3 within POOL1
-    # - else if at least 2 gauges exist within POOL1, use nearest 2 within POOL1
-    # - else expand to POOL2 with 4, then 3, then 2
     # ------------------------------------------------------------
-    if len(first_pool) >= 3:
-        choice = build_choice_from_selected(first_pool[:3])
-        return build_idw_case(choice, "nearest3_within5km")
+    # Step 4: mixed-pool IDW fallback
+    # ------------------------------------------------------------
+    if len(mixed_pool) >= 3:
+        choice = build_choice_from_selected(mixed_pool[:3])
+        return build_idw_case(choice, "nearest3_mixedpool")
 
-    if len(first_pool) >= 2:
-        choice = build_choice_from_selected(first_pool[:2])
-        return build_idw_case(choice, "nearest2_within5km")
+    if len(mixed_pool) >= 2:
+        choice = build_choice_from_selected(mixed_pool[:2])
+        return build_idw_case(choice, "nearest2_mixedpool")
 
-    idw_options = [
-        ("nearest4_within7km", second_pool, 4),
-        ("nearest3_within7km", second_pool, 3),
-        ("nearest2_within7km", second_pool, 2),
-    ]
-
-    for stage_name, pool, n_select in idw_options:
-        if len(pool) >= n_select:
-            choice = build_choice_from_selected(pool[:n_select])
-            return build_idw_case(choice, stage_name)
-
-    # If absolutely nothing usable
+    # absolute fallback
     if last_result is not None:
         stage_name, _, result = last_result
         choice = result["choice"]
@@ -613,7 +656,28 @@ def run_stagewise_search(stations_df, target_lat, target_lon, candidates, a_km, 
         }
 
     return None
+def make_forced_mixed_pool(first_pool: list[dict], second_pool: list[dict], n_forced_from_pool1: int) -> list[dict]:
+    """
+    Build a combined ordered pool where the first n_forced_from_pool1 gauges
+    are forced from first_pool, and the remaining gauges come from the rest
+    of first_pool and second_pool without duplicates, all distance-ordered.
+    """
+    forced = first_pool[:min(len(first_pool), n_forced_from_pool1)]
+    forced_ids = {g["id"] for g in forced}
 
+    rest = []
+    for g in first_pool + second_pool:
+        if g["id"] not in forced_ids and g["id"] not in {x["id"] for x in rest}:
+            rest.append(g)
+
+    rest.sort(key=lambda x: float(x["dist_m"]))
+    return forced + rest
+
+
+def idw_choice_from_pool(pool: list[dict], n_select: int):
+    if len(pool) < n_select:
+        return None
+    return build_choice_from_selected(pool[:n_select])
 def pad_output(final_ids, final_weights, original_choice, n_gauges):
     out_ids = []
     out_dists = []
@@ -715,7 +779,7 @@ def run_event(event_number: int, event_meta_dir: Path, out_dir: Path, nearest_fi
                 "refit_performed": False,
                 "dropped_negative_ids": "",
                 "n_gauges_final": 0,
-                "remarks": "not_enough_candidates_for_nearest3",
+                "remarks": "not_enough_candidates_for_nearest2",
                 "g1": "", "g2": "", "g3": "", "g4": "",
                 "d1_m": np.nan, "d2_m": np.nan, "d3_m": np.nan, "d4_m": np.nan,
                 "b1_deg": np.nan, "b2_deg": np.nan, "b3_deg": np.nan, "b4_deg": np.nan,

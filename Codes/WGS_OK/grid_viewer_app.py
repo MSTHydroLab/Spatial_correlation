@@ -337,6 +337,28 @@ def load_event_station_ids(event_no: int):
 
     return station_ids
 
+def make_heatmap_arrays(grid_lon, grid_lat, grid_ids, z_1d):
+    """
+    Convert centroid-based 1D values into 2D arrays for go.Heatmap.
+    Assumes the grid is regular in lon/lat.
+    """
+    lon_vals = np.sort(np.unique(np.round(grid_lon, 10)))
+    lat_vals = np.sort(np.unique(np.round(grid_lat, 10)))
+
+    lon_to_ix = {v: i for i, v in enumerate(lon_vals)}
+    lat_to_ix = {v: i for i, v in enumerate(lat_vals)}
+
+    Z = np.full((len(lat_vals), len(lon_vals)), np.nan, dtype=float)
+    ID = np.full((len(lat_vals), len(lon_vals)), "", dtype=object)
+
+    for lon, lat, gid, val in zip(grid_lon, grid_lat, grid_ids, z_1d):
+        i = lat_to_ix[round(float(lat), 10)]
+        j = lon_to_ix[round(float(lon), 10)]
+        Z[i, j] = val
+        ID[i, j] = str(gid)
+
+    return lon_vals, lat_vals, Z, ID
+
 def build_figure(
     grid_id: int,
     show_lines: bool,
@@ -409,26 +431,49 @@ def build_figure(
 
             valid_centroid_mask = np.isfinite(z)
 
-            fig.add_trace(go.Scatter(
-                x=GRID_LON[valid_centroid_mask],
-                y=GRID_LAT[valid_centroid_mask],
+            lon_vals, lat_vals, Z2, ID2 = make_heatmap_arrays(
+                GRID_LON, GRID_LAT, GRID_ID_ARR, z
+            )
+
+            customdata = np.empty(Z2.shape + (2,), dtype=object)
+            customdata[:, :, 0] = ID2
+            customdata[:, :, 1] = Z2
+
+            fig.add_trace(go.Heatmap(
+                x=lon_vals,
+                y=lat_vals,
+                z=Z2,
+                customdata=customdata,
+                colorscale=RAIN_COLORSCALE,
+                zmin=common_vmin,
+                zmax=common_vmax,
+                colorbar=dict(title="Rain (mm)"),
+                hovertemplate=(
+                    "Grid ID: %{customdata[0]}"
+                    "<br>Rain: %{customdata[1]:.3f} mm"
+                    "<br>Lon: %{x:.5f}"
+                    "<br>Lat: %{y:.5f}"
+                    "<extra></extra>"
+                ),
+                connectgaps=False,
+                xgap=0,
+                ygap=0,
+            ))
+            fig.add_trace(go.Scattergl(
+                x=GRID_LON,
+                y=GRID_LAT,
                 mode="markers",
-                name="Rain (centroids)",
+                name="centroid-click-layer",
                 marker=dict(
                     symbol="square",
-                    size=centroid_size,
-                    opacity=centroid_opacity,
-                    color=z[valid_centroid_mask],
-                    colorscale=RAIN_COLORSCALE,
-                    cmin=common_vmin,
-                    cmax=common_vmax,
-                    colorbar=dict(title="Rain (mm)"),
+                    size=max(centroid_size + 6, 10),
+                    color="rgba(0,0,0,0)",
                     line=dict(width=0),
                 ),
                 customdata=np.column_stack([
-                    GRID_ID_ARR[valid_centroid_mask],
-                    np.repeat("grid", int(np.sum(valid_centroid_mask))),
-                    z[valid_centroid_mask]
+                    GRID_ID_ARR,
+                    np.repeat("grid", len(GRID_ID_ARR)),
+                    z,   # <-- IMPORTANT: include rain value
                 ]),
                 hovertemplate=(
                     "Grid ID: %{customdata[0]}"
@@ -437,7 +482,9 @@ def build_figure(
                     "<br>Lat: %{y:.5f}"
                     "<extra></extra>"
                 ),
+                showlegend=False,
             ))
+            
             rain_note = f"Event {event_no}, time: {ts_label}"
         except Exception as e:
             print(f"[event load] fallback due to: {e}")
@@ -632,7 +679,7 @@ def build_figure(
         title=f"Grid {int(grid_id)} | {rain_note} | centroids={len(GRID_DF)} | gauges={len(STN_DF)}",
         xaxis_title="Longitude",
         yaxis_title="Latitude",
-        height=900,
+        height=800,
         margin=dict(l=40, r=20, t=70, b=40),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0.0),
         uirevision="keep",
@@ -688,21 +735,7 @@ def build_figure(
     for tr in catchment_traces:
         fig.add_trace(tr)
         
-    fig.add_trace(go.Scatter(
-            x=GRID_LON,
-            y=GRID_LAT,
-            mode="markers",
-            name="centroid-click-layer",
-            marker=dict(
-                symbol="square",
-                size=max(centroid_size + 14, 20),
-                opacity=0.01,
-                color="rgba(0,0,0,0.01)"
-            ),
-            customdata=GRID_ID_ARR,
-            hoverinfo="skip",
-            showlegend=False,
-        ))
+    
     
     return fig, info
 
@@ -828,7 +861,8 @@ def update_selected_grid(clickData, dropdown_value, current):
 
         if cd is not None:
             try:
-                if isinstance(cd, (list, tuple, np.ndarray)) and len(cd) >= 2 and cd[1] == "grid":
+                # heatmap case: [grid_id, rain]
+                if isinstance(cd, (list, tuple, np.ndarray)) and len(cd) >= 1:
                     new_gid = int(float(cd[0]))
                     return new_gid, new_gid
             except Exception:
