@@ -11,6 +11,7 @@ import pandas as pd
 
 from geo_utils import haversine_km, initial_bearing_deg, ang_sep_deg
 
+
 BASE_DIR = Path("/mnt/12TB/Sujan/Spatial_correlation/Codes/WGS_OK")
 DEP_DIR = BASE_DIR / "dependent_files"
 OUT_DIR = BASE_DIR / "02_OK_Weights"
@@ -20,8 +21,10 @@ GRID_CSV = DEP_DIR / "grid_centers_wgs84.csv"
 STATIONS_CSV = DEP_DIR / "Stations_df.csv"
 NEAREST_CSV = DEP_DIR / "grid_nearest_gauges_wgs84.csv"
 
-POOL1=5
-POOL2=9
+POOL1 = 6
+POOL2 = 12
+
+
 # ---------------------------------------------------------------------
 # Utilities
 # ---------------------------------------------------------------------
@@ -33,7 +36,6 @@ def norm_station_id(x) -> str:
         return str(int(float(s)))
     except Exception:
         return s
-
 
 
 def safe_list(x):
@@ -53,11 +55,9 @@ def safe_list(x):
             return []
 
 
-
 def rho_powerexp(d_km, a_km, b):
     d = np.asarray(d_km, dtype=float)
     return np.exp(-((d / float(a_km)) ** float(b)))
-
 
 
 def compute_ok_weights(stations_df, target_lat, target_lon, ids, a_km, b, nugget=0.0):
@@ -98,22 +98,48 @@ def compute_ok_weights(stations_df, target_lat, target_lon, ids, a_km, b, nugget
     return np.asarray(sol[:n], dtype=float), solver
 
 
-
 def min_pairwise_sep_deg(bears):
     bears = [float(x) for x in bears]
     if len(bears) < 2:
         return 360.0
+
     vals = []
     for i in range(len(bears)):
         for j in range(i + 1, len(bears)):
             vals.append(ang_sep_deg(bears[i], bears[j]))
+
     return float(min(vals)) if vals else 360.0
+
+
+def compute_idw_weights(dists_m, power=2.0):
+    d = np.asarray(dists_m, dtype=float)
+
+    if len(d) == 0:
+        return np.array([], dtype=float)
+
+    if np.any(d <= 0):
+        w = np.zeros_like(d, dtype=float)
+        w[np.argmin(d)] = 1.0
+        return w
+
+    inv = 1.0 / np.power(d, power)
+    s = np.sum(inv)
+
+    if s <= 0:
+        return np.zeros_like(d, dtype=float)
+
+    return inv / s
 
 
 # ---------------------------------------------------------------------
 # Candidate loading
 # ---------------------------------------------------------------------
-def build_nearest_table_from_scratch(grid_df, stations_df, search_radius_km: float, keep_n: int) -> pd.DataFrame:
+def build_nearest_table_from_scratch(
+    grid_df,
+    stations_df,
+    search_radius_km: float,
+    keep_n: int,
+) -> pd.DataFrame:
     stn_lat = stations_df["Latitude"].to_numpy(dtype=float)
     stn_lon = stations_df["Longitude"].to_numpy(dtype=float)
     stn_id = stations_df["ID"].astype(str).to_numpy()
@@ -129,6 +155,7 @@ def build_nearest_table_from_scratch(grid_df, stations_df, search_radius_km: flo
 
         inside = [i for i in order if float(d_km[i]) <= float(search_radius_km)]
         chosen = inside[:keep_n]
+
         if len(chosen) < keep_n:
             for i in order:
                 if i not in chosen:
@@ -154,28 +181,46 @@ def build_nearest_table_from_scratch(grid_df, stations_df, search_radius_km: flo
     return pd.DataFrame(rows)
 
 
-
-def load_or_build_candidates(nearest_file: Path, grid_file: Path, station_file: Path,
-                             search_radius_km: float, keep_n: int):
+def load_or_build_candidates(
+    nearest_file: Path,
+    grid_file: Path,
+    station_file: Path,
+    search_radius_km: float,
+    keep_n: int,
+):
     grid_df = pd.read_csv(grid_file)
     stations_df = pd.read_csv(station_file)
+
     grid_df["id"] = pd.to_numeric(grid_df["id"], errors="coerce").astype("Int64")
     stations_df["ID"] = stations_df["ID"].apply(norm_station_id)
 
     if nearest_file.exists():
         nei = pd.read_csv(nearest_file)
-        req = ["id", "Latitude", "Longitude", "candidate_ids", "candidate_dists_m", "candidate_bears_deg"]
+        req = [
+            "id",
+            "Latitude",
+            "Longitude",
+            "candidate_ids",
+            "candidate_dists_m",
+            "candidate_bears_deg",
+        ]
         missing = [c for c in req if c not in nei.columns]
+
         if not missing:
             nei["id"] = nei["id"].astype(str)
             return nei, stations_df
 
-    nei = build_nearest_table_from_scratch(grid_df, stations_df, search_radius_km, keep_n)
+    nei = build_nearest_table_from_scratch(
+        grid_df=grid_df,
+        stations_df=stations_df,
+        search_radius_km=search_radius_km,
+        keep_n=keep_n,
+    )
     return nei, stations_df
 
 
 # ---------------------------------------------------------------------
-# Nearest-n and negative-weight refit logic
+# Nearest-n and fallback logic
 # ---------------------------------------------------------------------
 def filter_candidates_by_radius(candidates: list[dict], radius_km: float) -> list[dict]:
     limit_m = float(radius_km) * 1000.0
@@ -186,6 +231,7 @@ def build_choice_from_selected(selected: list[dict]):
     ids = [g["id"] for g in selected]
     dists = [float(g["dist_m"]) for g in selected]
     bears = [float(g["bearing_deg"]) for g in selected]
+
     return {
         "ids": ids,
         "dists": dists,
@@ -197,6 +243,7 @@ def build_choice_from_selected(selected: list[dict]):
         "mean_dist_m": float(np.mean(dists)) if dists else np.nan,
     }
 
+
 def make_candidates_from_row(row, valid_station_set=None) -> list[dict]:
     ids = [norm_station_id(x) for x in safe_list(row.get("candidate_ids", []))]
     dists = [float(x) for x in safe_list(row.get("candidate_dists_m", []))]
@@ -204,12 +251,14 @@ def make_candidates_from_row(row, valid_station_set=None) -> list[dict]:
 
     n = min(len(ids), len(dists), len(bears))
     out = []
+
     for i in range(n):
         sid = ids[i]
         if sid == "":
             continue
         if valid_station_set is not None and sid not in valid_station_set:
             continue
+
         out.append({
             "id": sid,
             "dist_m": float(dists[i]),
@@ -219,23 +268,6 @@ def make_candidates_from_row(row, valid_station_set=None) -> list[dict]:
     out.sort(key=lambda x: x["dist_m"])
     return out
 
-def compute_idw_weights(dists_m, power=2.0):
-    d = np.asarray(dists_m, dtype=float)
-
-    if len(d) == 0:
-        return np.array([], dtype=float)
-
-    if np.any(d <= 0):
-        w = np.zeros_like(d, dtype=float)
-        w[np.argmin(d)] = 1.0
-        return w
-
-    inv = 1.0 / np.power(d, power)
-    s = np.sum(inv)
-    if s <= 0:
-        return np.zeros_like(d, dtype=float)
-
-    return inv / s
 
 def iterative_replace_until_positive(
     stations_df,
@@ -246,12 +278,16 @@ def iterative_replace_until_positive(
     a_km: float,
     b: float,
     nugget: float = 0.0,
+    max_replacements: int = 2,
 ):
     """
-    Start with the n_select nearest gauges from pool.
-    Keep the absolute nearest gauge fixed at all times.
-    If negative weights appear, replace the most-negative selected gauge
-    EXCEPT the forced nearest gauge.
+    Start with n_select nearest gauges from the pool.
+
+    Rules:
+    - Keep the absolute nearest gauge fixed.
+    - If negative weights appear, replace the most-negative selected gauge,
+      except the forced nearest gauge.
+    - Stop after max_replacements to avoid becoming too lenient.
     """
     if len(pool) < n_select:
         return None
@@ -259,10 +295,11 @@ def iterative_replace_until_positive(
     selected = [dict(x) for x in pool[:n_select]]
     next_idx = n_select
 
-    forced_near_id = str(pool[0]["id"])   # absolute nearest in this pool
+    forced_near_id = str(pool[0]["id"])
     solver_history = []
     replacement_history = []
     seen_states = set()
+    n_replacements = 0
 
     while True:
         state_key = tuple(x["id"] for x in selected)
@@ -282,10 +319,12 @@ def iterative_replace_until_positive(
             b=b,
             nugget=nugget,
         )
+
         w = np.asarray(w, dtype=float)
         solver_history.append(f"{ids_now}:{solver}")
 
         neg_idx = np.where(w < 0)[0]
+
         if len(neg_idx) == 0:
             return {
                 "success": True,
@@ -298,15 +337,14 @@ def iterative_replace_until_positive(
                 "forced_near_id": forced_near_id,
             }
 
-        # choose the most negative selected gauge, but NEVER drop forced nearest
-        candidate_drop_idx = np.argsort(w)  # most negative first
+        candidate_drop_idx = np.argsort(w)
         worst_local_idx = None
+
         for idx in candidate_drop_idx:
             if str(selected[int(idx)]["id"]) != forced_near_id:
                 worst_local_idx = int(idx)
                 break
 
-        # if the only negative gauge is the forced nearest, this stage cannot be repaired by replacement
         if worst_local_idx is None:
             return {
                 "success": False,
@@ -324,6 +362,7 @@ def iterative_replace_until_positive(
             cand = pool[next_idx]
             next_idx += 1
             cand_id = str(cand["id"])
+
             if cand_id not in [str(x["id"]) for x in selected]:
                 replacement = dict(cand)
                 break
@@ -343,6 +382,73 @@ def iterative_replace_until_positive(
         removed = str(selected[worst_local_idx]["id"])
         selected[worst_local_idx] = replacement
         replacement_history.append(f"drop {removed} -> add {replacement['id']}")
+
+        n_replacements += 1
+        if n_replacements > max_replacements:
+            return {
+                "success": False,
+                "choice": choice,
+                "weights": w,
+                "solver": solver,
+                "solver_history": " | ".join(solver_history),
+                "replacement_history": " | ".join(replacement_history),
+                "n_negative_final": int(np.sum(w < 0)),
+                "forced_near_id": forced_near_id,
+            }
+
+    return {
+        "success": False,
+        "choice": build_choice_from_selected(selected),
+        "weights": np.array([], dtype=float),
+        "solver": "loop_detected",
+        "solver_history": " | ".join(solver_history),
+        "replacement_history": " | ".join(replacement_history),
+        "n_negative_final": np.nan,
+        "forced_near_id": forced_near_id,
+    }
+
+
+def pad_output(final_ids, final_weights, original_choice, n_gauges):
+    out_ids = []
+    out_dists = []
+    out_bears = []
+    out_weights = []
+
+    orig_lookup = {
+        str(sid): (float(dist), float(bear))
+        for sid, dist, bear in zip(
+            original_choice["ids"],
+            original_choice["dists"],
+            original_choice["bears"],
+        )
+    }
+
+    for sid, w in zip(final_ids, final_weights):
+        dist, bear = orig_lookup[str(sid)]
+        out_ids.append(str(sid))
+        out_dists.append(dist)
+        out_bears.append(bear)
+        out_weights.append(float(w))
+
+    dropped_ids = [sid for sid in original_choice["ids"] if sid not in set(final_ids)]
+
+    for sid in dropped_ids:
+        if len(out_ids) >= n_gauges:
+            break
+        dist, bear = orig_lookup[str(sid)]
+        out_ids.append(str(sid))
+        out_dists.append(dist)
+        out_bears.append(bear)
+        out_weights.append(0.0)
+
+    while len(out_ids) < n_gauges:
+        out_ids.append("")
+        out_dists.append(np.nan)
+        out_bears.append(np.nan)
+        out_weights.append(0.0)
+
+    return out_ids, out_dists, out_bears, np.asarray(out_weights, dtype=float)
+
 
 def build_idw_case(choice, stage_name):
     weights = compute_idw_weights(choice["dists"], power=2.0)
@@ -370,138 +476,57 @@ def build_idw_case(choice, stage_name):
         "forced_near_id": str(choice["ids"][0]) if len(choice["ids"]) > 0 else "",
         "remarks": f"{stage_name}_idw_fallback",
     }
-    
-def choose_nearest_n(candidates: list[dict], n_gauges: int):
-    if len(candidates) < n_gauges:
-        return None
-    group = candidates[:n_gauges]
-    ids = [g["id"] for g in group]
-    dists = [float(g["dist_m"]) for g in group]
-    bears = [float(g["bearing_deg"]) for g in group]
-    return {
-        "ids": ids,
-        "dists": dists,
-        "bears": bears,
-        "forced_near_sid": ids[0],
-        "forced_near_dist_m": float(dists[0]),
-        "min_sep_deg": float(min_pairwise_sep_deg(bears)),
-        "sum_dist_m": float(np.sum(dists)),
-        "mean_dist_m": float(np.mean(dists)),
-    }
 
 
-
-def refit_negative_weights(stations_df, target_lat, target_lon, ids, a_km, b, nugget=0.0):
+def make_forced_mixed_pool(
+    first_pool: list[dict],
+    second_pool: list[dict],
+    n_forced_from_pool1: int,
+) -> list[dict]:
     """
-    One-stage refit only:
-    - solve with given ids
-    - if any negatives, remove those negative gauges
-    - refit once on remaining gauges
-    - stop there
+    Build a combined ordered pool where the first n_forced_from_pool1 gauges
+    are forced from first_pool, and the remaining gauges come from the rest
+    of first_pool and second_pool without duplicates.
     """
-    ids_initial = [str(x) for x in ids]
+    forced = first_pool[:min(len(first_pool), n_forced_from_pool1)]
+    forced_ids = {g["id"] for g in forced}
 
-    if len(ids_initial) == 0:
-        return {
-            "initial_ids": [],
-            "final_ids": [],
-            "final_weights": np.array([], dtype=float),
-            "raw_initial_weights": np.array([], dtype=float),
-            "solver_initial": "none",
-            "solver_final": "none",
-            "solver_history": "",
-            "dropped_negative_ids": "",
-            "n_negative_initial": 0,
-            "n_negative_final": 0,
-            "refit_performed": False,
-            "all_negative_removed": False,
-        }
+    rest = []
+    rest_ids = set()
 
-    w_initial, solver_initial = compute_ok_weights(
-        stations_df=stations_df,
-        target_lat=target_lat,
-        target_lon=target_lon,
-        ids=ids_initial,
-        a_km=a_km,
-        b=b,
-        nugget=nugget,
-    )
+    for g in first_pool + second_pool:
+        gid = g["id"]
+        if gid in forced_ids:
+            continue
+        if gid in rest_ids:
+            continue
+        rest.append(g)
+        rest_ids.add(gid)
 
-    neg_mask_initial = w_initial < 0
-    n_negative_initial = int(np.sum(neg_mask_initial))
-
-    if n_negative_initial == 0:
-        return {
-            "initial_ids": ids_initial,
-            "final_ids": ids_initial,
-            "final_weights": np.asarray(w_initial, dtype=float),
-            "raw_initial_weights": np.asarray(w_initial, dtype=float),
-            "solver_initial": solver_initial,
-            "solver_final": solver_initial,
-            "solver_history": f"n={len(ids_initial)}:{solver_initial}",
-            "dropped_negative_ids": "",
-            "n_negative_initial": 0,
-            "n_negative_final": 0,
-            "refit_performed": False,
-            "all_negative_removed": False,
-        }
-
-    dropped_ids = [sid for sid, is_neg in zip(ids_initial, neg_mask_initial) if is_neg]
-    ids_remaining = [sid for sid, is_neg in zip(ids_initial, neg_mask_initial) if not is_neg]
-
-    if len(ids_remaining) == 0:
-        return {
-            "initial_ids": ids_initial,
-            "final_ids": [],
-            "final_weights": np.array([], dtype=float),
-            "raw_initial_weights": np.asarray(w_initial, dtype=float),
-            "solver_initial": solver_initial,
-            "solver_final": "none",
-            "solver_history": f"n={len(ids_initial)}:{solver_initial} | n=0:none",
-            "dropped_negative_ids": ",".join(dropped_ids),
-            "n_negative_initial": n_negative_initial,
-            "n_negative_final": 0,
-            "refit_performed": True,
-            "all_negative_removed": True,
-        }
-
-    w_final, solver_final = compute_ok_weights(
-        stations_df=stations_df,
-        target_lat=target_lat,
-        target_lon=target_lon,
-        ids=ids_remaining,
-        a_km=a_km,
-        b=b,
-        nugget=nugget,
-    )
-
-    return {
-        "initial_ids": ids_initial,
-        "final_ids": ids_remaining,
-        "final_weights": np.asarray(w_final, dtype=float),
-        "raw_initial_weights": np.asarray(w_initial, dtype=float),
-        "solver_initial": solver_initial,
-        "solver_final": solver_final,
-        "solver_history": f"n={len(ids_initial)}:{solver_initial} | n={len(ids_remaining)}:{solver_final}",
-        "dropped_negative_ids": ",".join(dropped_ids),
-        "n_negative_initial": n_negative_initial,
-        "n_negative_final": int(np.sum(np.asarray(w_final) < 0)),
-        "refit_performed": True,
-        "all_negative_removed": False,
-    }
-    
+    rest.sort(key=lambda x: float(x["dist_m"]))
+    return forced + rest
 
 
-def run_stagewise_search(stations_df, target_lat, target_lon, candidates, a_km, b, nugget=0.0):
+def run_stagewise_search(
+    stations_df,
+    target_lat,
+    target_lon,
+    candidates,
+    a_km,
+    b,
+    nugget=0.0,
+):
     """
     Desired order:
-      1) 4 gauges OK within POOL1
-      2) 3 gauges OK within POOL1
-      3) 3 gauges IDW within POOL1 if available
-      4) 4 gauges OK within POOL1+POOL2, forcing nearest 2 from POOL1 if possible, else nearest 1
-      5) 3 gauges OK within POOL1+POOL2, forcing nearest 2 from POOL1 if possible, else nearest 1
-      6) 3 gauges IDW within POOL1+POOL2
-      7) 2 gauges IDW within POOL1+POOL2
+    1) 4 gauges OK within POOL1
+    2) 3 gauges OK within POOL1
+    3) 2 gauges OK within POOL1
+    4) 3 gauges IDW within POOL1 if available
+    5) 4 gauges OK within POOL1+POOL2
+    6) 3 gauges OK within POOL1+POOL2
+    7) 2 gauges OK within POOL1+POOL2
+    8) 3 gauges IDW within POOL1+POOL2
+    9) 2 gauges IDW within POOL1+POOL2
     """
     first_pool = filter_candidates_by_radius(candidates, POOL1)
     second_pool = filter_candidates_by_radius(candidates, POOL2)
@@ -510,8 +535,9 @@ def run_stagewise_search(stations_df, target_lat, target_lon, candidates, a_km, 
     # Step 1: local OK search in POOL1
     # ------------------------------------------------------------
     local_ok_stages = [
-        ("nearest4_within5km", first_pool, 4),
-        ("nearest3_within5km", first_pool, 3),
+        (f"nearest4_within{POOL1}km", first_pool, 4),
+        (f"nearest3_within{POOL1}km", first_pool, 3),
+        (f"nearest2_within{POOL1}km", first_pool, 2),
     ]
 
     for stage_name, pool, n_select in local_ok_stages:
@@ -524,6 +550,7 @@ def run_stagewise_search(stations_df, target_lat, target_lon, candidates, a_km, 
             a_km=a_km,
             b=b,
             nugget=nugget,
+            max_replacements=2,
         )
 
         if result is None:
@@ -559,21 +586,25 @@ def run_stagewise_search(stations_df, target_lat, target_lon, candidates, a_km, 
     # ------------------------------------------------------------
     if len(first_pool) >= 3:
         choice = build_choice_from_selected(first_pool[:3])
-        return build_idw_case(choice, "nearest3_within5km")
+        return build_idw_case(choice, f"nearest3_within{POOL1}km")
 
     # ------------------------------------------------------------
     # Step 3: mixed POOL1 + POOL2 OK search
     # Force nearest 2 from POOL1 if possible, else nearest 1
     # ------------------------------------------------------------
     n_forced = 2 if len(first_pool) >= 2 else (1 if len(first_pool) >= 1 else 0)
-    mixed_pool = make_forced_mixed_pool(first_pool, second_pool, n_forced_from_pool1=n_forced)
+
+    mixed_pool = make_forced_mixed_pool(
+        first_pool=first_pool,
+        second_pool=second_pool,
+        n_forced_from_pool1=n_forced,
+    )
 
     mixed_ok_stages = [
-        ("nearest4_mixedpool", mixed_pool, 4),
-        ("nearest3_mixedpool", mixed_pool, 3),
+        (f"nearest4_within{POOL2}km", mixed_pool, 4),
+        (f"nearest3_within{POOL2}km", mixed_pool, 3),
+        (f"nearest2_within{POOL2}km", mixed_pool, 2),
     ]
-
-    last_result = None
 
     for stage_name, pool, n_select in mixed_ok_stages:
         result = iterative_replace_until_positive(
@@ -585,12 +616,11 @@ def run_stagewise_search(stations_df, target_lat, target_lon, candidates, a_km, 
             a_km=a_km,
             b=b,
             nugget=nugget,
+            max_replacements=2,
         )
 
         if result is None:
             continue
-
-        last_result = (stage_name, n_select, result)
 
         if result["success"]:
             choice = result["choice"]
@@ -619,115 +649,124 @@ def run_stagewise_search(stations_df, target_lat, target_lon, candidates, a_km, 
 
     # ------------------------------------------------------------
     # Step 4: mixed-pool IDW fallback
+    # Important: use mixed_pool, NOT unrestricted candidates.
     # ------------------------------------------------------------
+    # ------------------------------------------------------------
+# Step 4: mixed-pool IDW fallback
+# Important: use mixed_pool first, so fallback stays radius-limited.
+# ------------------------------------------------------------
     if len(mixed_pool) >= 3:
         choice = build_choice_from_selected(mixed_pool[:3])
-        return build_idw_case(choice, "nearest3_mixedpool")
+        return build_idw_case(choice, f"nearest3_within{POOL2}km")
 
     if len(mixed_pool) >= 2:
         choice = build_choice_from_selected(mixed_pool[:2])
-        return build_idw_case(choice, "nearest2_mixedpool")
+        return build_idw_case(choice, f"nearest2_within{POOL2}km")
 
-    # absolute fallback
-    if last_result is not None:
-        stage_name, _, result = last_result
-        choice = result["choice"]
-        padded_ids, padded_dists, padded_bears, padded_weights = pad_output(
-            final_ids=choice["ids"],
-            final_weights=result["weights"],
-            original_choice=choice,
-            n_gauges=4,
-        )
+    # ------------------------------------------------------------
+    # Step 5: absolute fallback for cells with no weights
+    # Uses nearest available event-valid gauges, even outside POOL2.
+    # This prevents blank grid cells.
+    # ------------------------------------------------------------
+    if len(candidates) >= 3:
+        choice = build_choice_from_selected(candidates[:3])
+        return build_idw_case(choice, "nearest3_anydistance")
 
-        return {
-            "stage_used": stage_name,
-            "choice_used": choice,
-            "final_ids": choice["ids"],
-            "final_weights": np.asarray(result["weights"], dtype=float),
-            "padded_ids": padded_ids,
-            "padded_dists": padded_dists,
-            "padded_bears": padded_bears,
-            "padded_weights": padded_weights,
-            "solver": result["solver"],
-            "solver_history": result["solver_history"],
-            "replacement_history": result["replacement_history"],
-            "n_negative_final": int(result["n_negative_final"]),
-            "remarks": f"{stage_name}_failed_still_negative",
-        }
+    if len(candidates) >= 2:
+        choice = build_choice_from_selected(candidates[:2])
+        return build_idw_case(choice, "nearest2_anydistance")
+
+    if len(candidates) >= 1:
+        choice = build_choice_from_selected(candidates[:1])
+        return build_idw_case(choice, "nearest1_anydistance")
 
     return None
-def make_forced_mixed_pool(first_pool: list[dict], second_pool: list[dict], n_forced_from_pool1: int) -> list[dict]:
-    """
-    Build a combined ordered pool where the first n_forced_from_pool1 gauges
-    are forced from first_pool, and the remaining gauges come from the rest
-    of first_pool and second_pool without duplicates, all distance-ordered.
-    """
-    forced = first_pool[:min(len(first_pool), n_forced_from_pool1)]
-    forced_ids = {g["id"] for g in forced}
-
-    rest = []
-    for g in first_pool + second_pool:
-        if g["id"] not in forced_ids and g["id"] not in {x["id"] for x in rest}:
-            rest.append(g)
-
-    rest.sort(key=lambda x: float(x["dist_m"]))
-    return forced + rest
-
-
-def idw_choice_from_pool(pool: list[dict], n_select: int):
-    if len(pool) < n_select:
-        return None
-    return build_choice_from_selected(pool[:n_select])
-def pad_output(final_ids, final_weights, original_choice, n_gauges):
-    out_ids = []
-    out_dists = []
-    out_bears = []
-    out_weights = []
-
-    orig_lookup = {
-        str(sid): (float(dist), float(bear))
-        for sid, dist, bear in zip(original_choice["ids"], original_choice["dists"], original_choice["bears"])
-    }
-
-    for sid, w in zip(final_ids, final_weights):
-        dist, bear = orig_lookup[str(sid)]
-        out_ids.append(str(sid))
-        out_dists.append(dist)
-        out_bears.append(bear)
-        out_weights.append(float(w))
-
-    dropped_ids = [sid for sid in original_choice["ids"] if sid not in set(final_ids)]
-    for sid in dropped_ids:
-        if len(out_ids) >= n_gauges:
-            break
-        dist, bear = orig_lookup[str(sid)]
-        out_ids.append(str(sid))
-        out_dists.append(dist)
-        out_bears.append(bear)
-        out_weights.append(0.0)
-
-    while len(out_ids) < n_gauges:
-        out_ids.append("")
-        out_dists.append(np.nan)
-        out_bears.append(np.nan)
-        out_weights.append(0.0)
-
-    return out_ids, out_dists, out_bears, np.asarray(out_weights, dtype=float)
 
 
 # ---------------------------------------------------------------------
 # Main event runner
 # ---------------------------------------------------------------------
-def run_event(event_number: int, event_meta_dir: Path, out_dir: Path, nearest_file: Path,
-              grid_file: Path, station_file: Path, n_gauges: int,
-              nugget: float, search_radius_km: float, keep_n: int):
+def empty_result_record(cid, target_lat, target_lon, event_number, candidate_count, remarks):
+    return {
+        "id": cid,
+        "Latitude": target_lat,
+        "Longitude": target_lon,
+        "event": int(event_number),
+        "n_gauges_requested": 4,
+        "candidate_count": int(candidate_count),
+        "stage_used": "none",
+        "forced_near_sid": "",
+        "forced_near_dist_m": np.nan,
+        "min_ang_sep_deg": np.nan,
+        "sum_dist_m": np.nan,
+        "mean_dist_m": np.nan,
+        "solver": "none",
+        "solver_history": "",
+        "replacement_history": "",
+        "n_negative_weights": np.nan,
+        "n_negative_initial": np.nan,
+        "n_negative_final": np.nan,
+        "min_weight": np.nan,
+        "max_weight": np.nan,
+        "sum_weights": np.nan,
+        "refit_performed": False,
+        "dropped_negative_ids": "",
+        "n_gauges_final": 0,
+        "remarks": remarks,
+        "g1": "",
+        "g2": "",
+        "g3": "",
+        "g4": "",
+        "d1_m": np.nan,
+        "d2_m": np.nan,
+        "d3_m": np.nan,
+        "d4_m": np.nan,
+        "b1_deg": np.nan,
+        "b2_deg": np.nan,
+        "b3_deg": np.nan,
+        "b4_deg": np.nan,
+        "w1": 0.0,
+        "w2": 0.0,
+        "w3": 0.0,
+        "w4": 0.0,
+        "raw_w1": np.nan,
+        "raw_w2": np.nan,
+        "raw_w3": np.nan,
+        "raw_w4": np.nan,
+    }
+
+
+def run_event(
+    event_number: int,
+    event_meta_dir: Path,
+    out_dir: Path,
+    nearest_file: Path,
+    grid_file: Path,
+    station_file: Path,
+    n_gauges: int,
+    nugget: float,
+    search_radius_km: float,
+    keep_n: int,
+):
     event_file = event_meta_dir / f"Event_{event_number}_Stations_correlation.csv"
     if not event_file.exists():
         raise FileNotFoundError(f"Missing event metadata: {event_file}")
 
     event_df = pd.read_csv(event_file)
-    valid_station_list = event_df["stations_selected"].iloc[0].split(",")
+
+    valid_station_list = [
+        norm_station_id(x)
+        for x in str(event_df["stations_selected"].iloc[0]).split(",")
+        if norm_station_id(x) != ""
+    ]
+
+    # ---- EXCLUDE specific stations for event 7 ----
+    if int(event_number) == 7:
+        exclude_ids = {"16030", "16031"}
+        valid_station_list = [sid for sid in valid_station_list if sid not in exclude_ids]
+
     valid_station_set = set(valid_station_list)
+
     a_km = float(event_df["corr_a_km"].iloc[0])
     b = float(event_df["corr_b"].iloc[0])
 
@@ -744,6 +783,7 @@ def run_event(event_number: int, event_meta_dir: Path, out_dir: Path, nearest_fi
     stations = stations[stations["ID"].isin(valid_station_set)].copy()
 
     results = []
+
     for _, row in nei.iterrows():
         cid = str(row["id"])
         target_lat = float(row["Latitude"])
@@ -751,41 +791,17 @@ def run_event(event_number: int, event_meta_dir: Path, out_dir: Path, nearest_fi
 
         candidates = make_candidates_from_row(row, valid_station_set)
 
-        first_pool = filter_candidates_by_radius(candidates, POOL1)
-        second_pool = filter_candidates_by_radius(candidates, POOL2)
-
-        if len(second_pool) < 2:
-            results.append({
-                "id": cid,
-                "Latitude": target_lat,
-                "Longitude": target_lon,
-                "event": int(event_number),
-                "n_gauges_requested": 4,
-                "candidate_count": int(len(candidates)),
-                "stage_used": "none",
-                "forced_near_sid": "",
-                "forced_near_dist_m": np.nan,
-                "min_ang_sep_deg": np.nan,
-                "sum_dist_m": np.nan,
-                "mean_dist_m": np.nan,
-                "solver": "none",
-                "solver_history": "",
-                "n_negative_weights": np.nan,
-                "n_negative_initial": np.nan,
-                "n_negative_final": np.nan,
-                "min_weight": np.nan,
-                "max_weight": np.nan,
-                "sum_weights": np.nan,
-                "refit_performed": False,
-                "dropped_negative_ids": "",
-                "n_gauges_final": 0,
-                "remarks": "not_enough_candidates_for_nearest2",
-                "g1": "", "g2": "", "g3": "", "g4": "",
-                "d1_m": np.nan, "d2_m": np.nan, "d3_m": np.nan, "d4_m": np.nan,
-                "b1_deg": np.nan, "b2_deg": np.nan, "b3_deg": np.nan, "b4_deg": np.nan,
-                "w1": 0.0, "w2": 0.0, "w3": 0.0, "w4": 0.0,
-                "raw_w1": np.nan, "raw_w2": np.nan, "raw_w3": np.nan, "raw_w4": np.nan,
-            })
+        if len(candidates) < 1:
+            results.append(
+                empty_result_record(
+                    cid=cid,
+                    target_lat=target_lat,
+                    target_lon=target_lon,
+                    event_number=event_number,
+                    candidate_count=len(candidates),
+                    remarks="fewer_than_1_total_candidates",
+                )
+            )
             continue
 
         case = run_stagewise_search(
@@ -799,37 +815,16 @@ def run_event(event_number: int, event_meta_dir: Path, out_dir: Path, nearest_fi
         )
 
         if case is None:
-            results.append({
-                "id": cid,
-                "Latitude": target_lat,
-                "Longitude": target_lon,
-                "event": int(event_number),
-                "n_gauges_requested": 4,
-                "candidate_count": int(len(candidates)),
-                "stage_used": "none",
-                "forced_near_sid": "",
-                "forced_near_dist_m": np.nan,
-                "min_ang_sep_deg": np.nan,
-                "sum_dist_m": np.nan,
-                "mean_dist_m": np.nan,
-                "solver": "none",
-                "solver_history": "",
-                "n_negative_weights": np.nan,
-                "n_negative_initial": np.nan,
-                "n_negative_final": np.nan,
-                "min_weight": np.nan,
-                "max_weight": np.nan,
-                "sum_weights": np.nan,
-                "refit_performed": False,
-                "dropped_negative_ids": "",
-                "n_gauges_final": 0,
-                "remarks": "hierarchical_case_failed",
-                "g1": "", "g2": "", "g3": "", "g4": "",
-                "d1_m": np.nan, "d2_m": np.nan, "d3_m": np.nan, "d4_m": np.nan,
-                "b1_deg": np.nan, "b2_deg": np.nan, "b3_deg": np.nan, "b4_deg": np.nan,
-                "w1": 0.0, "w2": 0.0, "w3": 0.0, "w4": 0.0,
-                "raw_w1": np.nan, "raw_w2": np.nan, "raw_w3": np.nan, "raw_w4": np.nan,
-            })
+            results.append(
+                empty_result_record(
+                    cid=cid,
+                    target_lat=target_lat,
+                    target_lon=target_lon,
+                    event_number=event_number,
+                    candidate_count=len(candidates),
+                    remarks="hierarchical_case_failed",
+                )
+            )
             continue
 
         choice = case["choice_used"]
@@ -875,14 +870,26 @@ def run_event(event_number: int, event_meta_dir: Path, out_dir: Path, nearest_fi
             "refit_performed": True,
             "dropped_negative_ids": "",
             "remarks": str(case["remarks"]),
-            "forced_near_sid": str(case["choice_used"]["ids"][0]) if len(case["choice_used"]["ids"]) > 0 else "",
+            "forced_near_sid": str(choice["ids"][0]) if len(choice["ids"]) > 0 else "",
         }
 
         for k in range(1, 5):
             rec[f"g{k}"] = str(padded_ids[k - 1]) if k <= len(padded_ids) else ""
-            rec[f"d{k}_m"] = float(padded_dists[k - 1]) if k <= len(padded_dists) and pd.notna(padded_dists[k - 1]) else np.nan
-            rec[f"b{k}_deg"] = float(padded_bears[k - 1]) if k <= len(padded_bears) and pd.notna(padded_bears[k - 1]) else np.nan
-            rec[f"w{k}"] = float(padded_weights[k - 1]) if k <= len(padded_weights) else 0.0
+            rec[f"d{k}_m"] = (
+                float(padded_dists[k - 1])
+                if k <= len(padded_dists) and pd.notna(padded_dists[k - 1])
+                else np.nan
+            )
+            rec[f"b{k}_deg"] = (
+                float(padded_bears[k - 1])
+                if k <= len(padded_bears) and pd.notna(padded_bears[k - 1])
+                else np.nan
+            )
+            rec[f"w{k}"] = (
+                float(padded_weights[k - 1])
+                if k <= len(padded_weights)
+                else 0.0
+            )
 
         for k in range(1, 5):
             rec[f"raw_w{k}"] = np.nan
@@ -892,6 +899,7 @@ def run_event(event_number: int, event_meta_dir: Path, out_dir: Path, nearest_fi
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / f"Event_{event_number}_weights.csv"
     pd.DataFrame(results).to_csv(out_file, index=False)
+
     print(f"Saved: {out_file}")
 
 
@@ -901,13 +909,20 @@ def run_event(event_number: int, event_meta_dir: Path, out_dir: Path, nearest_fi
 def main():
     ap = argparse.ArgumentParser(
         description=(
-            "Compute ordinary-kriging weights using the nearest n gauges only. "
-            "If any weights are negative, remove those gauges, refit on the remaining gauges, "
-            "and write the output in the same g/w column format with removed gauges padded as zero weights."
+            "Compute staged ordinary-kriging weights. "
+            "Tries 4, 3, and 2 gauge OK within POOL1, then IDW, "
+            "then repeats within POOL2, with final radius-limited IDW fallback."
         )
     )
+
     ap.add_argument("--event", type=int, nargs="+", required=True, help="One or more event numbers")
-    ap.add_argument("--n-gauges", type=int, default=4, choices=[3, 4], help="Kept for compatibility, but hierarchical mode always starts from nearest 4 then falls back to nearest 3")
+    ap.add_argument(
+        "--n-gauges",
+        type=int,
+        default=4,
+        choices=[2, 3, 4],
+        help="Kept for compatibility. Hierarchical mode controls actual gauge count.",
+    )
     ap.add_argument("--base-dir", type=Path, default=BASE_DIR)
     ap.add_argument("--event-meta-dir", type=Path, default=CORRELATION_DIR)
     ap.add_argument("--out-dir", type=Path, default=OUT_DIR)
@@ -915,14 +930,26 @@ def main():
     ap.add_argument("--grid-file", type=Path, default=GRID_CSV)
     ap.add_argument("--station-file", type=Path, default=STATIONS_CSV)
     ap.add_argument("--nugget", type=float, default=0.0)
-    ap.add_argument("--search-radius-km", type=float, default=POOL2, help="Used only if nearest-file is missing or incomplete")
-    ap.add_argument("--keep-n", type=int, default=10, help="Used only if nearest-file is missing or incomplete")
+    ap.add_argument(
+        "--search-radius-km",
+        type=float,
+        default=POOL2,
+        help="Used only if nearest-file is missing or incomplete.",
+    )
+    ap.add_argument(
+        "--keep-n",
+        type=int,
+        default=10,
+        help="Used only if nearest-file is missing or incomplete.",
+    )
+
     args = ap.parse_args()
 
     for ev in args.event:
         print("=" * 80)
-        print(f"Running event {ev} with staged OK search and final IDW fallback")
+        print(f"Running event {ev} with staged OK search and radius-limited IDW fallback")
         print("=" * 80)
+
         run_event(
             event_number=int(ev),
             event_meta_dir=Path(args.event_meta_dir),

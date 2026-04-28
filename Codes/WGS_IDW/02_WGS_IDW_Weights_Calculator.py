@@ -126,6 +126,11 @@ def run_event(event_number: int, event_meta_dir: Path, neighbor_file: Path, stat
     if "stations_selected" not in event_df.columns:
         raise ValueError(f"Missing stations_selected column in {event_file}")
     selected = parse_selected_station_ids(event_df["stations_selected"].iloc[0])
+    # ---- EXCLUDE bad stations for event 7 ----
+    if int(event_number) == 7:
+        exclude_ids = {"16030", "16031"}
+        selected = {sid for sid in selected if sid not in exclude_ids}
+    
 
     nei = pd.read_csv(neighbor_file)
     stations = pd.read_csv(station_file)

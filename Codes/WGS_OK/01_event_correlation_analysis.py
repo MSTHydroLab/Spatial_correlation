@@ -47,6 +47,7 @@ EVENT_WINDOWS = {
     13: ("2020-07-03 19:00:00", "2020-07-04 03:00:00"),
     14: ("2021-08-12 21:00:00", "2021-08-13 15:00:00"),
     15: ("2022-03-30 01:00:00", "2022-03-30 11:00:00"),
+    16: ("2024-03-24 11:00:00", "2024-03-25 17:00:00"),
 }
 
 # ------------------------------------------------------------
@@ -62,25 +63,29 @@ def save_correlation_plot(event, dists, corrs, a_km, b, n_stations_used=None, re
 
     plt.figure(figsize=(8, 6))
     plt.scatter(dists, corrs, s=5, alpha=0.6, label="Station pairs")
-    plt.plot(
-        xfit,
-        yfit,
-        linewidth=2,
-        color="red",
-        label=f"Fit: a={a_km:.2f} km, b={b:.2f}"
+    plt.plot(xfit, yfit, linewidth=2, color="red")
+    eq_text = f"$\\rho(d) = e^{{-(d/{a_km:.2f})^{{{b:.2f}}}}}$"
+    plt.text(
+        0.95, 0.95,
+        eq_text,
+        transform=plt.gca().transAxes,
+        ha="right",
+        va="top",
+        fontsize=17,
+        fontweight=1000
     )
-
     title = f"Event {event}: correlation decay"
     if n_stations_used is not None:
         title += f"\nStations used: {n_stations_used}"
     if required_positive_count is not None:
         title += f" | Required rain hours > 0: {required_positive_count}"
-    plt.title(title)
-
-    plt.xlabel("Distance between stations (km)")
-    plt.ylabel("Correlation")
+    #plt.title(title)
+    plt.ylim(0,1)
+    plt.xlabel("Inter-station distance (km)", fontsize=18,fontweight='bold')
+    plt.ylabel("Correlation", fontsize=18,fontweight='bold')
+    plt.tick_params(axis="both", labelsize=14)
     plt.grid(True, alpha=0.3)
-    plt.legend()
+    #plt.legend()
 
     plot_path = PLOT_DIR / f"Event_{event}_correlation_fit.png"
     plt.savefig(plot_path, dpi=300, bbox_inches="tight")

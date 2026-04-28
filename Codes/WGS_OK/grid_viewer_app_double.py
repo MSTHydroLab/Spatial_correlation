@@ -47,7 +47,7 @@ RAIN_COLORSCALE = [
 ]
 
 COLORBAR_X_LEFT = 0.46
-COLORBAR_X_RIGHT = 1.02
+COLORBAR_X_RIGHT = 1.08
 
 
 # -----------------------------------------------------------------------------
@@ -103,6 +103,23 @@ def polygon_to_traces(geom, line_width=1.5):
 
     return traces
 
+def make_heatmap_arrays(grid_lon, grid_lat, grid_ids, z_1d):
+    lon_vals = np.sort(np.unique(np.round(grid_lon, 10)))
+    lat_vals = np.sort(np.unique(np.round(grid_lat, 10)))
+
+    lon_to_ix = {v: i for i, v in enumerate(lon_vals)}
+    lat_to_ix = {v: i for i, v in enumerate(lat_vals)}
+
+    Z = np.full((len(lat_vals), len(lon_vals)), np.nan, dtype=float)
+    ID = np.full((len(lat_vals), len(lon_vals)), "", dtype=object)
+
+    for lon, lat, gid, val in zip(grid_lon, grid_lat, grid_ids, z_1d):
+        i = lat_to_ix[round(float(lat), 10)]
+        j = lon_to_ix[round(float(lon), 10)]
+        Z[i, j] = val
+        ID[i, j] = str(gid)
+
+    return lon_vals, lat_vals, Z, ID
 
 def circle_lonlat(clon, clat, r_km, n=360):
     t = np.linspace(0, 2 * np.pi, n)
@@ -464,7 +481,7 @@ def make_placeholder_figure(title: str, viewport: dict | None = None) -> go.Figu
         xaxis_title="Longitude",
         yaxis_title="Latitude",
         height=1100,
-        margin=dict(l=40, r=20, t=70, b=40),
+        margin=dict(l=40, r=90, t=70, b=40),
         dragmode="pan",
         uirevision="keep",
         annotations=[
@@ -499,7 +516,7 @@ def build_figure(
     time_idx: int | None,
     viewport: dict | None = None,
     panel: str = "left",
-):
+    ):
     row = GRID_DF.loc[GRID_DF[GRID_ID_COL] == int(grid_id)].iloc[0]
     tx = float(row[GRID_LON_COL])
     ty = float(row[GRID_LAT_COL])
@@ -547,11 +564,13 @@ def build_figure(
             time_idx = int(np.clip(time_idx, 0, len(times) - 1))
 
             z = rain_mat[time_idx, :]
-            valid_mask = np.isfinite(z)
-            x_plot = GRID_LON[valid_mask]
-            y_plot = GRID_LAT[valid_mask]
-            z_plot = z[valid_mask]
-            grid_id_plot = GRID_ID_ARR[valid_mask]
+            lon_vals, lat_vals, Z2, ID2 = make_heatmap_arrays(
+                GRID_LON, GRID_LAT, GRID_ID_ARR, z
+            )
+
+            customdata = np.empty(Z2.shape + (2,), dtype=object)
+            customdata[:, :, 0] = ID2
+            customdata[:, :, 1] = Z2
             try:
                 selected_idx = np.where(GRID_ID_ARR == int(grid_id))[0][0]
                 selected_grid_rain = z[selected_idx]
@@ -576,34 +595,29 @@ def build_figure(
             rain_note = f"{source_label} | Event {event_no} | {ts_label}"
             time_label = ts_label
 
-            fig.add_trace(go.Scatter(
-                x=x_plot,
-                y=y_plot,
-                mode="markers",
-                name="Rain (centroids)",
-                marker=dict(
-                    symbol="square",
-                    size=centroid_size,
-                    opacity=centroid_opacity,
-                    color=z_plot,
-                    colorscale=RAIN_COLORSCALE,
-                    cmin=common_vmin,
-                    cmax=common_vmax,
-                    showscale=(panel == "left"),
-                    colorbar=dict(
-                        title="Rain (mm)",
-                        x=1.02,
-                    ),
-                    line=dict(width=0),
+            fig.add_trace(go.Heatmap(
+                x=lon_vals,
+                y=lat_vals,
+                z=Z2,
+                customdata=customdata,
+                colorscale=RAIN_COLORSCALE,
+                zmin=common_vmin,
+                zmax=common_vmax,
+                showscale=(panel == "left"),
+                colorbar=dict(
+                    title="Rain (mm)",
+                    x=1.08,
                 ),
-                customdata=np.column_stack([grid_id_plot, np.repeat("grid", len(grid_id_plot)), z_plot]),
                 hovertemplate=(
                     "Grid ID: %{customdata[0]}"
-                    "<br>Rain: %{customdata[2]:.3f} mm"
+                    "<br>Rain: %{customdata[1]:.3f} mm"
                     "<br>Lon: %{x:.5f}"
                     "<br>Lat: %{y:.5f}"
                     "<extra></extra>"
                 ),
+                connectgaps=False,
+                xgap=0,
+                ygap=0,
             ))
         except Exception as e:
             print(f"[event load] fallback due to: {e}")
@@ -817,19 +831,29 @@ def build_figure(
 
     for tr in catchment_traces:
         fig.add_trace(tr)
+    valid_mask = np.isfinite(z)
+    click_x = GRID_LON[valid_mask]
+    click_y = GRID_LAT[valid_mask]
+    click_ids = GRID_ID_ARR[valid_mask]
+    click_rain = z[valid_mask]
+    click_mask = np.isfinite(z) if event_no is not None else np.ones(len(GRID_ID_ARR), dtype=bool)
 
-    fig.add_trace(go.Scatter(
-        x=GRID_LON,
-        y=GRID_LAT,
+    fig.add_trace(go.Scattergl(
+        x=GRID_LON[click_mask],
+        y=GRID_LAT[click_mask],
         mode="markers",
         name="centroid-click-layer",
         marker=dict(
             symbol="square",
-            size=max(centroid_size + 14, 20),
-            opacity=0.01,
-            color="rgba(0,0,0,0.01)"
+            size=max(centroid_size + 8, 12),
+            opacity=0.001,
+            color="rgba(0,0,0,0.001)",
+            line=dict(width=0),
         ),
-        customdata=np.column_stack([GRID_ID_ARR, np.repeat("grid", len(GRID_ID_ARR))]),
+        customdata=np.column_stack([
+            GRID_ID_ARR[click_mask],
+            np.repeat("grid", int(np.sum(click_mask))),
+        ]),
         hoverinfo="skip",
         showlegend=False,
     ))
@@ -839,7 +863,7 @@ def build_figure(
         xaxis_title="Longitude",
         yaxis_title="Latitude",
         height=800,
-        margin=dict(l=40, r=20, t=70, b=40),
+        margin=dict(l=40, r=90, t=70, b=40),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0.0),
         dragmode="pan",
         uirevision="keep",
@@ -866,7 +890,6 @@ def build_figure(
 # App
 # -----------------------------------------------------------------------------
 app = Dash(__name__)
-app.title = "Two-panel WGS rainfall viewer"
 
 ALL_DEFAULT_EVENTS = get_union_available_events(DEFAULT_LEFT_SOURCE, DEFAULT_RIGHT_SOURCE)
 default_grid_id = int(GRID_IDS[0]) if GRID_IDS else None
@@ -876,7 +899,7 @@ app.layout = html.Div(
     style={"display": "flex", "gap": "14px", "fontFamily": "system-ui, -apple-system, Segoe UI, Roboto, sans-serif"},
     children=[
         html.Div(
-            style={"width": "380px", "padding": "14px", "borderRight": "1px solid #ddd", "overflowY": "auto", "maxHeight": "100vh"},
+            style={"width": "280px", "padding": "14px", "borderRight": "1px solid #ddd", "overflowY": "auto", "maxHeight": "100vh"},
             children=[
                 html.H3("Controls", style={"marginTop": "0px"}),
                 html.Label("Left source"),
@@ -970,11 +993,10 @@ app.layout = html.Div(
             ],
         ),
         html.Div(
-            style={"flex": "1", "padding": "10px"},
+            style={"flex": "1", "padding": "0px"},
             children=[
-                html.H2("Two-panel rainfall viewer", style={"marginTop": "0px"}),
                 html.Div(
-                    style={"display": "grid", "gridTemplateColumns": "1fr 1fr", "gap": "12px"},
+                    style={"display": "grid", "gridTemplateColumns": "1.1fr 1fr", "gap": "1px"},
                     children=[
                         html.Div([
                             html.Div(id="left-title", style={"fontWeight": "600", "marginBottom": "6px"}),
@@ -1046,15 +1068,18 @@ def update_selected_grid(click_left, click_right, dropdown_value, current):
         return current, current
 
     pt = clickData["points"][0]
-    cd = pt.get("customdata", None)
-    try:
-        if isinstance(cd, (list, tuple, np.ndarray)) and len(cd) >= 2 and cd[1] == "grid":
-            new_gid = int(float(cd[0]))
-            return new_gid, new_gid
-    except Exception:
-        pass
 
-    return current, current
+    try:
+        x_clicked = float(pt["x"])
+        y_clicked = float(pt["y"])
+
+        d2 = (GRID_LON - x_clicked) ** 2 + (GRID_LAT - y_clicked) ** 2
+        nearest_idx = int(np.argmin(d2))
+        new_gid = int(GRID_ID_ARR[nearest_idx])
+
+        return new_gid, new_gid
+    except Exception:
+        return current, current
 
 
 @app.callback(
@@ -1181,7 +1206,7 @@ def redraw_both(
     event_no,
     time_idx,
     viewport,
-):
+    ):
     if grid_id is None and GRID_IDS:
         grid_id = int(GRID_IDS[0])
     elif grid_id is None:

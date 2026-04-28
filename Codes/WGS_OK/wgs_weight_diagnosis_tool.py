@@ -132,9 +132,9 @@ def load_event_params(event_no: int, event_meta_dir: Path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Diagnose ordinary kriging weights for one centroid and a chosen set of 3 to 4 stations.")
+    parser = argparse.ArgumentParser(description="Diagnose ordinary kriging weights for one centroid and a chosen set of 2 to 4 stations.")
     parser.add_argument("--centroid-id", required=True, help="Grid centroid id")
-    parser.add_argument("--stations", required=True, help='Comma list or Python-style list, e.g. "16018,16046,16032" or "[16018,16046,16032,16086]"')
+    parser.add_argument("--stations", required=True, help='Comma list or Python-style list, e.g. "16018,16046" or "[16018,16046,16032,16086]"')
     parser.add_argument("--event", type=int, default=None, help="Event number to read corr_a_km and corr_b from Event_X_Stations_correlation.csv")
     parser.add_argument("--a-km", type=float, default=None, help="Correlation range parameter a in km, if not using --event")
     parser.add_argument("--b", type=float, default=None, help="Correlation shape parameter b, if not using --event")
@@ -150,7 +150,7 @@ def main():
         raise SystemExit("Provide either --event or both --a-km and --b.")
 
     station_ids = parse_station_list(args.stations)
-    if len(station_ids) not in (3, 4):
+    if len(station_ids) not in (2,3, 4):
         raise SystemExit(f"You gave {len(station_ids)} stations. This tool expects 3 or 4 stations.")
 
     grid_df = pd.read_csv(args.grid_file)

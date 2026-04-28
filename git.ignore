@@ -1,2 +1,6 @@
 Raw_rain_measurement\*
+WGS_OK/dependent_files/grid_grouped_candidates_wgs84.csv
+WGS_OK/dependent_files/grid_grouped_candidates_wgs84.csv
 *.csv
+Codes/WGS_OK/dependent_files/grid_grouped_candidates_wgs84.csv
+*.nc

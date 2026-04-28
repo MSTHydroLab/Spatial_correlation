@@ -6,9 +6,9 @@ import argparse
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-from shapely.geometry import Point
+from shapely.geometry import Point, box
 
-
+GRID_CELLSIZE_DEG = 0.004167
 BASE_DIR = Path("/mnt/12TB/Sujan/Spatial_correlation/Codes/WGS_OK")
 DEP_DIR = BASE_DIR / "01_Event_TimeSeries"
 WEIGHTS_DIR = BASE_DIR / "02_OK_Weights"
@@ -200,13 +200,17 @@ def load_catchment_union(shp_paths: list[str]):
     return union_geom
 
 
-def filter_weights_to_catchment(weights_df: pd.DataFrame, catchment_geom):
-    geom = gpd.GeoSeries(
-        [Point(lon, lat) for lon, lat in zip(weights_df["Longitude"], weights_df["Latitude"])],
-        crs="EPSG:4326",
-    )
-    mask = geom.buffer(1e-5).intersects(catchment_geom)
-    return weights_df.loc[mask].copy()
+def filter_weights_to_catchment(weights_df: pd.DataFrame, catchment_geom, cellsize_deg: float):
+    half = 0.5 * float(cellsize_deg)
+
+    cell_polys = [
+        box(lon - half, lat - half, lon + half, lat + half)
+        for lon, lat in zip(weights_df["Longitude"].to_numpy(float), weights_df["Latitude"].to_numpy(float))
+    ]
+
+    gdf = gpd.GeoDataFrame(weights_df.copy(), geometry=cell_polys, crs="EPSG:4326")
+    mask = gdf.intersects(catchment_geom)
+    return gdf.loc[mask].drop(columns="geometry").copy()
 
 
 def run_event(
@@ -256,11 +260,11 @@ def run_event(
     # ------------------------------------------------------------
     # catchment-only output
     # ------------------------------------------------------------
-    W_catch = filter_weights_to_catchment(W, catchment_geom)
+    W_catch = filter_weights_to_catchment(W, catchment_geom, GRID_CELLSIZE_DEG)
 
     grid_rain_catch = compute_grid_rain(W_catch, R_filled)
 
-    out_rain_catch = out_dir / f"Event_{event_number}_grid_rain_hourly_mm.csv"
+    out_rain_catch = out_dir / f"Event_{event_number}_grid_rain_hourly_mm_catchment_only.csv"
     out_df_catch = grid_rain_catch.copy()
     out_df_catch.insert(0, "time_local", out_df_catch.index.astype(str))
     out_df_catch.to_csv(out_rain_catch, index=False)

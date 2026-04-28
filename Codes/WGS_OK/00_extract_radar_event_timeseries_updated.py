@@ -7,7 +7,8 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
-
+import geopandas as gpd
+from shapely.geometry import box
 import numpy as np
 import pandas as pd
 
@@ -24,7 +25,11 @@ DEFAULT_PRODUCT_DIRS = [
     Path("/mnt/12TB/Sujan/Radar_products/RKDP"),
     Path("/mnt/12TB/Sujan/Radar_products/RZ"),
 ]
-
+DEFAULT_CATCHMENT_SHP_PATHS = [
+    "/mnt/12TB/Sujan/Spatial_correlation/Codes/dependent_files/6893390/6893390.shp",
+    "/mnt/12TB/Sujan/Spatial_correlation/Codes/dependent_files/06893080/6893080.shp",
+    "/mnt/12TB/Sujan/Spatial_correlation/Codes/dependent_files/6892513/6892513.shp",
+]
 GENERIC_FNAME_RE = re.compile(
     r".*?_(?P<accum_sec>\d+)_(?P<date>\d{2}[A-Z]{3}\d{4})_(?P<time>\d{6})\.out$",
     re.IGNORECASE,
@@ -192,6 +197,22 @@ def validate_headers(paths: Iterable[Path]) -> RadarHeader:
     print(f"[header-check] validated {checked} files in {baseline.source_file.parent}")
     return baseline
 
+def load_catchment_union(shp_paths: list[str]):
+    geoms = []
+    for p in shp_paths:
+        shp = Path(p)
+        if not shp.exists():
+            continue
+        gdf = gpd.read_file(shp)
+        if gdf.empty or gdf.crs is None:
+            continue
+        gdf = gdf.to_crs("EPSG:4326")
+        geoms.extend(list(gdf.geometry.dropna()))
+
+    if len(geoms) == 0:
+        raise FileNotFoundError("No valid catchment geometries could be loaded.")
+
+    return gpd.GeoSeries(geoms, crs="EPSG:4326").union_all()
 
 def load_and_subset_grid(
     grid_csv: Path,
@@ -199,6 +220,8 @@ def load_and_subset_grid(
     end_lat: float,
     start_lon: float,
     end_lon: float,
+    catchment_geom=None,
+    cellsize_deg: float | None = None,
 ) -> pd.DataFrame:
     grid = pd.read_csv(grid_csv)
     req = ["id", "Latitude", "Longitude"]
@@ -208,13 +231,35 @@ def load_and_subset_grid(
 
     lat_min, lat_max = sorted([start_lat, end_lat])
     lon_min, lon_max = sorted([start_lon, end_lon])
+
     sub = grid.loc[
         grid["Latitude"].between(lat_min, lat_max)
         & grid["Longitude"].between(lon_min, lon_max),
         req,
     ].copy()
+
     if sub.empty:
         raise ValueError("No grid centers found inside the requested lat/lon box")
+
+    if catchment_geom is not None:
+        if cellsize_deg is None:
+            raise ValueError("cellsize_deg is required when catchment clipping is requested")
+
+        half = 0.5 * float(cellsize_deg)
+
+        cell_polys = [
+            box(lon - half, lat - half, lon + half, lat + half)
+            for lon, lat in zip(sub["Longitude"].to_numpy(float), sub["Latitude"].to_numpy(float))
+        ]
+
+        gsub = gpd.GeoDataFrame(sub.copy(), geometry=cell_polys, crs="EPSG:4326")
+
+        # keep cells whose footprint touches or intersects the catchment
+        mask = gsub.intersects(catchment_geom)
+        sub = gsub.loc[mask, req].copy()
+
+    if sub.empty:
+        raise ValueError("No grid cells remain after catchment-intersection filtering")
 
     sub["id"] = sub["id"].astype(str)
     sub = sub.sort_values(["Latitude", "Longitude", "id"]).reset_index(drop=True)
@@ -389,6 +434,12 @@ def parse_args() -> argparse.Namespace:
         default=[str(p) for p in DEFAULT_PRODUCT_DIRS],
         help="One or more radar product folders. Separate outputs are written for each folder.",
     )
+    ap.add_argument(
+        "--catchment-shps",
+        nargs="*",
+        default=DEFAULT_CATCHMENT_SHP_PATHS,
+        help="Catchment shapefiles used to keep only grid cells whose footprint intersects the catchment",
+    )
     ap.add_argument("--start-lat", type=float, default=38.7293249)
     ap.add_argument("--end-lat", type=float, default=39.0418499)
     ap.add_argument("--start-lon", type=float, default=-94.899835)
@@ -401,21 +452,35 @@ def main() -> None:
 
     grid_csv = Path(args.grid_csv)
     event_meta_dir = Path(args.event_meta_dir)
+    catchment_geom = load_catchment_union(args.catchment_shps)
     out_root = Path(args.out_dir)
     product_dirs = [Path(p) for p in args.product_dirs]
 
     start, end, event_idx = load_event_window(args.event, event_meta_dir)
     print(f"[event] {args.event}")
     print(f"[window] {start} to {end} ({len(event_idx)} hourly steps)")
+    reference_header = None
+    for prod_dir in product_dirs:
+        if not prod_dir.exists():
+            raise FileNotFoundError(f"Radar product folder not found: {prod_dir}")
+        files = discover_files_in_window(prod_dir, start, end)
+        if files:
+            reference_header = validate_headers(files.values())
+            break
 
+    if reference_header is None:
+        raise FileNotFoundError("No radar files found in the event window across the provided product folders.")
+    
     grid_sub = load_and_subset_grid(
         grid_csv=grid_csv,
         start_lat=args.start_lat,
         end_lat=args.end_lat,
         start_lon=args.start_lon,
         end_lon=args.end_lon,
+        catchment_geom=catchment_geom,
+        cellsize_deg=reference_header.cellsize,
     )
-    print(f"[grid] selected {len(grid_sub)} grid centers from {grid_csv}")
+    print(f"[grid] selected {len(grid_sub)} grid centers after catchment cell-intersection filter")
 
     for prod_dir in product_dirs:
         if not prod_dir.exists():

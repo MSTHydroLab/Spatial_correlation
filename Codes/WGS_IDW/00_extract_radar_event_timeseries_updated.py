@@ -13,7 +13,7 @@ import pandas as pd
 
 LOCAL_TZ = "America/Chicago"
 
-BASE_DIR = Path("/mnt/12TB/Sujan/Spatial_correlation/Codes/WGS_IDW")
+BASE_DIR = Path("/mnt/12TB/Sujan/Spatial_correlation/Codes/WGS_OK")
 DEFAULT_GRID_CSV = BASE_DIR / "dependent_files" / "grid_centers_wgs84.csv"
 DEFAULT_EVENT_META_DIR = BASE_DIR / "01_Event_TimeSeries"
 DEFAULT_OUT_DIR = Path("/mnt/12TB/Sujan/Spatial_correlation/Codes/WGS_IDW/Radar_Event_TimeSeries")
@@ -216,7 +216,9 @@ def load_and_subset_grid(
     if sub.empty:
         raise ValueError("No grid centers found inside the requested lat/lon box")
 
-    sub["id"] = sub["id"].astype(str)
+    sub["id"] = pd.to_numeric(sub["id"], errors="coerce").astype("Int64")
+    sub = sub.dropna(subset=["id"]).copy()
+    sub["id"] = sub["id"].astype(int).astype(str)
     sub = sub.sort_values(["Latitude", "Longitude", "id"]).reset_index(drop=True)
     return sub
 
