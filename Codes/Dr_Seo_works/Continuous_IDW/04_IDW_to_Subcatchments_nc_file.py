@@ -24,7 +24,12 @@ DEFAULT_GRID_CSV = "/mnt/12TB/Sujan/Spatial_correlation/Codes/WGS_OK/dependent_f
 DEFAULT_BIN_DIR = "/mnt/12TB/Sujan/Spatial_correlation/Codes/Dr_Seo_works/Continuous_IDW/03_Interpolated_Rain/bin_rainfall"
 DEFAULT_OUT_DIR = "/mnt/12TB/Sujan/Spatial_correlation/Codes/Dr_Seo_works/Continuous_IDW/04_IDW_to_Subcatchments_nc_file"
 
-
+''' python 04_IDW_to_Subcatchments_nc_file.py\
+    --start-date 20130101 --end-date 20241231\
+        --nc /mnt/12TB/Sujan/ngiab_preprocess_output/06893080/forcings/forcings.nc\
+            --gpkg "/mnt/12TB/Sujan/ngiab_preprocess_output/06893080/config/06893080_subset.gpkg"
+                
+'''
 # -----------------------------------------------------------------------------
 # Helpers
 # -----------------------------------------------------------------------------

@@ -10,7 +10,14 @@ from shapely.geometry import box
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Polygon as MplPolygon
 
-'''python 10_plot_rainfall_difference.py   --csv1 "/mnt/12TB/Sujan/Spatial_correlation/Codes/WGS_OK/03_Interpolated_Rain/Event_7_grid_rain_hourly_mm.csv"   --csv2 "/mnt/12TB/Sujan/Spatial_correlation/Codes/WGS_IDW/03_Interpolated_Rain/Event_7_grid_rain_hourly_mm.csv"   --grid-csv "/mnt/12TB/Sujan/Spatial_correlation/Codes/WGS_OK/dependent_files/grid_centers_wgs84.csv"   --catchments     "/mnt/12TB/Sujan/Spatial_correlation/Codes/dependent_files/6893390/6893390.shp"     "/mnt/12TB/Sujan/Spatial_correlation/Codes/dependent_files/06893080/6893080.shp"     "/mnt/12TB/Sujan/Spatial_correlation/Codes/dependent_files/6892513/6892513.shp"   --out diff_plot_event7.png
+'''python 10_plot_rainfall_difference.py \
+    --csv1 "/mnt/12TB/Sujan/Spatial_correlation/Codes/WGS_OK/03_Interpolated_Rain/Event_4_grid_rain_hourly_mm.csv"\
+        --csv2 "/mnt/12TB/Sujan/Spatial_correlation/Codes/WGS_IDW/03_Interpolated_Rain/Event_4_grid_rain_hourly_mm.csv" \
+            --grid-csv "/mnt/12TB/Sujan/Spatial_correlation/Codes/WGS_OK/dependent_files/grid_centers_wgs84.csv"  \
+                --catchments     "/mnt/12TB/Sujan/Spatial_correlation/Codes/dependent_files/6893390/6893390.shp"  \
+                    "/mnt/12TB/Sujan/Spatial_correlation/Codes/dependent_files/06893080/6893080.shp"   \
+                        "/mnt/12TB/Sujan/Spatial_correlation/Codes/dependent_files/6892513/6892513.shp"\
+                            --out diff_plot_event4.png
 '''
 # -------------------------
 # Helpers
