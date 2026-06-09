@@ -63,6 +63,7 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--output-prefix", default="latlon_radar")
     ap.add_argument("--catchments", nargs="*", type=Path, default=CATCHMENT_SHP_PATHS)
     ap.add_argument("--write-grid-centers-csv", action="store_true")
+    ap.add_argument("--no-catchment-clip",action="store_true",help="Extract time series for all WGS grid centers instead of only catchment-intersecting cells.",)
     return ap.parse_args()
 
 
@@ -319,7 +320,8 @@ def build_event_cube(
     end: pd.Timestamp,
     event_idx: pd.DatetimeIndex,
     write_grid_centers_csv: bool,
-) -> None:
+    mode_tag: str,
+    ) -> None:
     files = discover_files_in_window(radar_dir, start, end)
     if not files:
         raise FileNotFoundError(f"No radar files found in window under {radar_dir}")
@@ -391,10 +393,10 @@ def build_event_cube(
         "grid_csv": str(WGS_GRID_CSV),
     }])
 
-    rain_path = out_dir / f"{output_prefix}_grid_rain_timeseries_catchments_only.csv"
-    meta_path = out_dir / f"{output_prefix}_grid_metadata_catchments_only.csv"
-    missing_path = out_dir / f"{output_prefix}_missing_hours_catchments_only.csv"
-    summary_path = out_dir / f"{output_prefix}_summary_catchments_only.csv"
+    rain_path = out_dir / f"{output_prefix}_grid_rain_timeseries_{mode_tag}.csv"
+    meta_path = out_dir / f"{output_prefix}_grid_metadata_{mode_tag}.csv"
+    missing_path = out_dir / f"{output_prefix}_missing_hours_{mode_tag}.csv"
+    summary_path = out_dir / f"{output_prefix}_summary_{mode_tag}.csv"
 
     rain_df.to_csv(rain_path, index=False)
     meta_df.to_csv(meta_path, index=False)
@@ -407,7 +409,7 @@ def build_event_cube(
     print(f"[saved] {summary_path}")
 
     if write_grid_centers_csv:
-        grid_centers_path = out_dir / f"{output_prefix}_selected_wgs_grid_centers.csv"
+        grid_centers_path = out_dir / f"{output_prefix}_selected_wgs_grid_centers_{mode_tag}.csv"
         grid_map[["id", "Latitude", "Longitude"]].to_csv(grid_centers_path, index=False)
         print(f"[saved] {grid_centers_path}")
 
@@ -434,10 +436,18 @@ def main() -> None:
         f"cellsize={reference_header.cellsize}"
     )
 
-    catchment_union = load_catchment_union(list(args.catchments))
     wgs_grid = load_existing_wgs_grid(args.grid_csv)
-    grid_sub = subset_existing_grid_to_catchments(wgs_grid, catchment_union)
-    print(f"[grid] selected {len(grid_sub)} WGS grid centers intersecting the 3 catchments")
+
+    if args.no_catchment_clip:
+        grid_sub = wgs_grid.copy()
+        grid_sub["id"] = grid_sub["id"].astype(str)
+        mode_tag = "full_grid"
+        print(f"[grid] selected all {len(grid_sub)} WGS grid centers")
+    else:
+        catchment_union = load_catchment_union(list(args.catchments))
+        grid_sub = subset_existing_grid_to_catchments(wgs_grid, catchment_union)
+        mode_tag = "catchments_only"
+        print(f"[grid] selected {len(grid_sub)} WGS grid centers intersecting the catchments")
 
     build_event_cube(
         radar_dir=args.radar_dir,
@@ -448,6 +458,7 @@ def main() -> None:
         end=end,
         event_idx=event_idx,
         write_grid_centers_csv=args.write_grid_centers_csv,
+        mode_tag=mode_tag,
     )
 
 

@@ -83,7 +83,7 @@ def build_full_groups_from_sectors(
     max_per_sector: int,
     max_groups: int,
     inner_radius_km: float | None = None,
-    min_within_inner_radius: int = 0,
+    min_within_inner_radius: int = 1,
     ):
     sector_bins = {k: [] for k in range(n_sectors)}
     for cand in candidates:
@@ -177,10 +177,10 @@ def select_candidates_and_groups_for_target(
         candidate_ids=candidate_ids,
         candidate_dists_m=candidate_dists_m,
         candidate_bears_deg=candidate_bears_deg,
-        min_sep_3=60,
-        min_sep_4=45,
-        max_gap_3=180,
-        max_gap_4=160,
+        min_sep_3=40,
+        min_sep_4=30,
+        max_gap_3=220,
+        max_gap_4=220,
         max_groups_per_type=max_groups_per_type,
         inner_radius_km=inner_radius_km,
         min_within_inner_radius=min_within_inner_radius,
@@ -254,7 +254,7 @@ def build_angle_based_groups(
     max_gap_4=180.0,
     max_groups_per_type=50,
     inner_radius_km=None,
-    min_within_inner_radius=0,
+    min_within_inner_radius=1,
     ):
     groups3 = []
     groups4 = []

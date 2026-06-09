@@ -337,19 +337,32 @@ def build_total_raster(
 
         arr = read_full_raster(fp, h, skiprows)
 
-        vals = arr[selected_rows, selected_cols]
-        mask = np.isfinite(vals)
+        if full_grid:
+            # Accumulate every radar cell, not only catchment-intersecting cells.
+            mask = np.isfinite(arr)
 
-        rr = selected_rows[mask]
-        cc = selected_cols[mask]
-        vv = vals[mask]
+            need_init = ~np.isfinite(total[mask])
+            if np.any(need_init):
+                total[mask] = np.where(np.isfinite(total[mask]), total[mask], 0.0)
 
-        need_init = ~np.isfinite(total[rr, cc])
-        if np.any(need_init):
-            total[rr[need_init], cc[need_init]] = 0.0
+            total[mask] = np.where(np.isfinite(total[mask]), total[mask], 0.0) + arr[mask]
+            valid_count[mask] += 1
 
-        total[rr, cc] += vv
-        valid_count[rr, cc] += 1
+        else:
+            # Accumulate only radar cells intersecting catchments.
+            vals = arr[selected_rows, selected_cols]
+            mask = np.isfinite(vals)
+
+            rr = selected_rows[mask]
+            cc = selected_cols[mask]
+            vv = vals[mask]
+
+            need_init = ~np.isfinite(total[rr, cc])
+            if np.any(need_init):
+                total[rr[need_init], cc[need_init]] = 0.0
+
+            total[rr, cc] += vv
+            valid_count[rr, cc] += 1
 
         parsed_times.append(ts)
         print(f"[{i+1}/{len(files)}] processed {fp.name}")
@@ -362,9 +375,11 @@ def build_total_raster(
 
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    asc_path = out_dir / f"{output_prefix}_total_event_rain_catchments_only.asc"
-    meta_path = out_dir / f"{output_prefix}_total_event_rain_catchments_only_metadata.csv"
-    summary_path = out_dir / f"{output_prefix}_total_event_rain_catchments_only_summary.csv"
+    mode_tag = "full_grid" if full_grid else "catchments_only"
+
+    asc_path = out_dir / f"{output_prefix}_total_event_rain_{mode_tag}.asc"
+    meta_path = out_dir / f"{output_prefix}_total_event_rain_{mode_tag}_metadata.csv"
+    summary_path = out_dir / f"{output_prefix}_total_event_rain_{mode_tag}_summary.csv"
 
     write_ascii_grid(asc_path, out_arr, first_header)
 

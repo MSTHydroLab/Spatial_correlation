@@ -61,20 +61,27 @@ def compute_idw_weights(dists_m, power=2.0):
     return inv / np.sum(inv)
 
 
-def pad_to_four(ids, dists_m, bears_deg, weights):
+def pad_to_n(ids, dists_m, bears_deg, weights, n_out: int):
     ids = list(ids)
     dists_m = list(dists_m)
     bears_deg = list(bears_deg)
     weights = list(np.asarray(weights, dtype=float))
 
     n_used = len(ids)
-    while len(ids) < 4:
+
+    while len(ids) < n_out:
         ids.append("")
         dists_m.append(np.nan)
         bears_deg.append(np.nan)
         weights.append(0.0)
 
-    return ids[:4], dists_m[:4], bears_deg[:4], np.asarray(weights[:4], dtype=float), n_used
+    return (
+        ids[:n_out],
+        dists_m[:n_out],
+        bears_deg[:n_out],
+        np.asarray(weights[:n_out], dtype=float),
+        n_used,
+    )
 
 
 def extract_candidates_from_row(row, selected_station_ids):
@@ -112,8 +119,18 @@ def extract_candidates_from_row(row, selected_station_ids):
 # Main logic
 # -----------------------------
 
-def run_event(event_number: int, event_meta_dir: Path, neighbor_file: Path, station_file: Path, out_dir: Path,
-              nugget: float, inner_radius_km: float, min_within_inner_radius: int):
+def run_event(
+    event_number: int,
+    event_meta_dir: Path,
+    neighbor_file: Path,
+    station_file: Path,
+    out_dir: Path,
+    nugget: float,
+    inner_radius_km: float,
+    min_within_inner_radius: int,
+    max_gauges: int,
+    idw_power: float,
+    ):
     event_file = event_meta_dir / f"Event_{event_number}_Stations_correlation.csv"
     if not event_file.exists():
         raise FileNotFoundError(f"Missing event metadata: {event_file}")
@@ -127,7 +144,7 @@ def run_event(event_number: int, event_meta_dir: Path, neighbor_file: Path, stat
         raise ValueError(f"Missing stations_selected column in {event_file}")
     selected = parse_selected_station_ids(event_df["stations_selected"].iloc[0])
     # ---- EXCLUDE bad stations for event 7 ----
-    if int(event_number) == 7:
+    if int(event_number) == 14:
         exclude_ids = {"16030", "16031"}
         selected = {sid for sid in selected if sid not in exclude_ids}
     
@@ -149,20 +166,20 @@ def run_event(event_number: int, event_meta_dir: Path, neighbor_file: Path, stat
             continue
 
         # Use 4 nearest if available, otherwise 3 if available, otherwise keep whatever exists.
-        if len(candidates) >= 4:
-            chosen = candidates[:4]
-        elif len(candidates) >= 3:
-            chosen = candidates[:3]
-        else:
-            chosen = candidates[:len(candidates)]
+        n_choose = min(len(candidates), max_gauges)
+        chosen = candidates[:n_choose]
 
         chosen_ids = [x[0] for x in chosen]
         chosen_dists = [x[1] for x in chosen]
         chosen_bears = [x[2] for x in chosen]
-        weights = compute_idw_weights(chosen_dists, power=2.0)
+        weights = compute_idw_weights(chosen_dists, power=idw_power)
 
-        chosen_ids4, chosen_d4, chosen_b4, weights4, n_used = pad_to_four(
-            chosen_ids, chosen_dists, chosen_bears, weights
+        chosen_ids4, chosen_d4, chosen_b4, weights4, n_used = pad_to_n(
+            chosen_ids,
+            chosen_dists,
+            chosen_bears,
+            weights,
+            n_out=max_gauges,
         )
 
         true_nearest_sid = chosen_ids[0] if len(chosen_ids) > 0 else ""
@@ -181,7 +198,7 @@ def run_event(event_number: int, event_meta_dir: Path, neighbor_file: Path, stat
             "forced_near_dist_m": float(true_nearest_dist) if np.isfinite(true_nearest_dist) else np.nan,
         }
 
-        for k in range(4):
+        for k in range(max_gauges):
             rec[f"g{k+1}"] = chosen_ids4[k]
             rec[f"d{k+1}_m"] = float(chosen_d4[k]) if pd.notna(chosen_d4[k]) else np.nan
             rec[f"b{k+1}_deg"] = float(chosen_b4[k]) if pd.notna(chosen_b4[k]) else np.nan
@@ -214,6 +231,18 @@ if __name__ == "__main__":
     parser.add_argument("--nugget", type=float, default=0.0, help="Accepted for interface compatibility. Not used by IDW.")
     parser.add_argument("--inner-radius-km", type=float, default=7.0, help="Accepted for interface compatibility.")
     parser.add_argument("--min-within-inner-radius", type=int, default=2, help="Accepted for interface compatibility.")
+    parser.add_argument(
+        "--max-gauges",
+        type=int,
+        default=4,
+        help="Maximum number of nearest candidate gauges to use for IDW weights.",
+    )
+    parser.add_argument(
+        "--idw-power",
+        type=float,
+        default=2.0,
+        help="IDW power. Lower values give more weight to farther gauges.",
+    )
     args = parser.parse_args()
 
     for ev in args.event:
@@ -226,4 +255,6 @@ if __name__ == "__main__":
             nugget=args.nugget,
             inner_radius_km=args.inner_radius_km,
             min_within_inner_radius=args.min_within_inner_radius,
+            max_gauges=args.max_gauges,
+            idw_power=args.idw_power,
         )

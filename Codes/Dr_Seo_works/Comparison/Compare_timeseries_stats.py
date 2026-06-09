@@ -165,8 +165,8 @@ def main():
     )
     ap.add_argument("--input1", required=True, help="First rainfall time series CSV")
     ap.add_argument("--input2", required=True, help="Second rainfall time series CSV")
-    ap.add_argument("--start", required=True, help="Start datetime, e.g. 2017-07-23 00:00:00")
-    ap.add_argument("--end", required=True, help="End datetime, e.g. 2017-07-23 12:00:00")
+    ap.add_argument("--start", required=True, help="Start datetime, e.g. '2017-07-23 00:00:00'   ")
+    ap.add_argument("--end", required=True, help="End datetime, e.g. '2017-07-23 12:00:00'   ")
     ap.add_argument("--out-dir", required=True, help="Output folder")
     ap.add_argument(
         "--append-time",
